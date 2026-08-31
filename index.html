@@ -97,6 +97,20 @@
   .result-item .channel{ font-size:10px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .empty{ font-size:13px; color:var(--text-muted); grid-column:1/-1; }
 
+  .quick-tags{ display:flex; gap:10px; flex-wrap:wrap; padding:2px 0 14px; }
+  .quick-tags button{
+    background:var(--surface-2); border:0.5px solid var(--border); color:var(--text);
+    border-radius:999px; padding:13px 20px; font-size:16px; font-weight:600;
+  }
+
+  @media (min-width: 700px){
+    .grid{ grid-template-columns: repeat(4, 1fr); gap:12px; }
+    .result-item .title{ font-size:13px; }
+    main{ max-width:900px; margin:0 auto; width:100%; }
+    .searchbar{ max-width:900px; left:50%; right:auto; transform:translateX(-50%); }
+    .searchbar.centered{ transform:translate(-50%, -50%); }
+  }
+
   .searchbar{
     position:fixed;
     left:16px; right:16px; bottom:calc(14px + env(safe-area-inset-bottom));
@@ -117,20 +131,22 @@
   .searchbar button{ font-size:15px; padding:12px 18px; border-radius:12px; }
   .bath-btn{
     flex:0 0 auto;
-    width:52px; height:52px; padding:0;
+    width:46px; height:46px; padding:0;
     display:flex; align-items:center; justify-content:center;
     border-radius:14px;
     background:var(--surface-2);
     color:var(--accent);
-    font-size:30px;
+    font-size:24px;
     line-height:1;
   }
 
   .overlay{
     position:fixed; inset:0; background:#000; z-index:1000;
-    display:none; flex-direction:column;
+    display:flex; flex-direction:column;
+    opacity:0; visibility:hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
   }
-  .overlay.open{ display:flex; }
+  .overlay.open{ opacity:1; visibility:visible; }
   .overlay .close{
     position:absolute; top:max(16px, env(safe-area-inset-top)); right:16px;
     z-index:1001; background:rgba(0,0,0,0.5); color:#fff; border:none;
@@ -166,6 +182,12 @@
   }
   .chan-row a{ color:var(--accent); text-decoration:none; font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .chan-row button{ padding:4px 10px; margin-left:8px; font-size:12px; }
+
+  @media (min-width: 640px){
+    body{ max-width:480px; margin:0 auto; border-left:0.5px solid var(--border); border-right:0.5px solid var(--border); }
+    .searchbar{ max-width:448px; left:50%; right:auto; transform:translateX(-50%); }
+    .searchbar.centered{ transform:translate(-50%, -50%); }
+  }
 </style>
 </head>
 <body>
@@ -184,6 +206,16 @@
       <input type="text" id="bathQueryInput" placeholder="例: ラジオ">
       <button id="saveBathBtn">保存</button>
     </div>
+    <div class="label">💤 ボタンで自動再生する検索キーワード</div>
+    <div class="row" style="margin-bottom:14px;">
+      <input type="text" id="sleepQueryInput" placeholder="例: 睡眠 雑学">
+      <button id="saveSleepBtn">保存</button>
+    </div>
+    <div class="label">クイックタグ(カンマ区切り)</div>
+    <div class="row" style="margin-bottom:14px;">
+      <input type="text" id="quickTagsInput" placeholder="例: 癒し,AI,投資">
+      <button id="saveTagsBtn">保存</button>
+    </div>
     <div class="label">よく見るチャンネル</div>
     <div id="channelList"></div>
     <div class="row" style="margin-top:8px;">
@@ -198,6 +230,7 @@
   <div class="spinner" id="spinner">検索中…</div>
 
   <main>
+    <div class="quick-tags" id="quickTags"></div>
     <div class="grid" id="results">
       <div class="empty">検索すると、ここに8件表示されます(10分未満の動画は除外)。</div>
     </div>
@@ -206,6 +239,7 @@
   <div class="searchbar" id="searchbar">
     <div class="row">
       <button class="bath-btn" id="bathBtn" aria-label="お風呂用の動画を自動再生">♨</button>
+      <button class="bath-btn" id="sleepBtn" aria-label="睡眠用の動画を自動再生">💤</button>
       <input type="text" id="queryInput" placeholder="見たい動画・トピックを検索">
       <button class="primary" id="searchBtn">検索</button>
     </div>
@@ -237,7 +271,27 @@
   var COOLDOWN_STEP = 10;      // 1本ごとに+10秒
   var MIN_DURATION_SECONDS = 600; // 10分未満は除外(通常検索のみ)
 
-  var bathModeActive = false; // ♨️経由の再生中はクールダウンをスキップ
+  var bathModeActive = false; // ♨️/💤経由の再生中はクールダウンをスキップ
+
+  // ---- watched history (視聴済みの動画は二度と出さない) ----
+  var WATCHED_STORAGE = 'clean-tube-watched-ids';
+  function loadWatched(){
+    try{ return JSON.parse(localStorage.getItem(WATCHED_STORAGE) || '[]'); }
+    catch(e){ return []; }
+  }
+  function markWatched(id){
+    var w = loadWatched();
+    if(w.indexOf(id) === -1){
+      w.push(id);
+      if(w.length > 500){ w = w.slice(w.length - 500); }
+      localStorage.setItem(WATCHED_STORAGE, JSON.stringify(w));
+    }
+  }
+  function filterUnwatched(items){
+    var w = loadWatched();
+    var filtered = items.filter(function(item){ return w.indexOf(item.id) === -1; });
+    return filtered.length > 0 ? filtered : items; // 全部視聴済みなら元のリストを返す(手詰まり防止)
+  }
 
   // ---- daily counter (表示のみ、ロックはしない) ----
   function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -278,6 +332,49 @@
     if(v){
       bathQuery = v;
       localStorage.setItem(BATH_QUERY_STORAGE, v);
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  // ---- sleep query setting ----
+  var SLEEP_QUERY_STORAGE = 'clean-tube-sleep-query';
+  var sleepQuery = localStorage.getItem(SLEEP_QUERY_STORAGE) || '睡眠 雑学';
+  document.getElementById('sleepQueryInput').value = sleepQuery;
+  document.getElementById('saveSleepBtn').addEventListener('click', function(){
+    var v = document.getElementById('sleepQueryInput').value.trim();
+    if(v){
+      sleepQuery = v;
+      localStorage.setItem(SLEEP_QUERY_STORAGE, v);
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  // ---- quick tags ----
+  var QUICK_TAGS_STORAGE = 'clean-tube-quick-tags';
+  var quickTags = (localStorage.getItem(QUICK_TAGS_STORAGE) || '癒し,AI,投資').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  document.getElementById('quickTagsInput').value = quickTags.join(',');
+
+  function renderQuickTags(){
+    var wrap = document.getElementById('quickTags');
+    wrap.innerHTML = '';
+    quickTags.forEach(function(tag){
+      var btn = document.createElement('button');
+      btn.textContent = tag;
+      btn.addEventListener('click', function(){
+        queryInput.value = tag;
+        doSearch();
+      });
+      wrap.appendChild(btn);
+    });
+  }
+  renderQuickTags();
+
+  document.getElementById('saveTagsBtn').addEventListener('click', function(){
+    var v = document.getElementById('quickTagsInput').value.trim();
+    if(v){
+      quickTags = v.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+      localStorage.setItem(QUICK_TAGS_STORAGE, quickTags.join(','));
+      renderQuickTags();
       document.getElementById('settingsCard').classList.remove('open');
     }
   });
@@ -357,6 +454,7 @@
       items = items.filter(function(item){
         return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
       });
+      items = filterUnwatched(items);
       items.sort(function(a, b){
         return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
       });
@@ -390,8 +488,8 @@
     }
   }
 
-  // ---- bath button: auto-play top result for bathQuery, no cooldown ----
-  document.getElementById('bathBtn').addEventListener('click', async function(){
+  // ---- ♨️ / 💤: auto-play top unwatched result for a preset query, no cooldown ----
+  async function specialAutoPlay(query){
     var errEl = document.getElementById('queryErr');
     errEl.style.display = 'none';
 
@@ -405,7 +503,7 @@
     var spinner = document.getElementById('spinner');
     spinner.style.display = 'block';
     try{
-      var items = await fetchVideos(bathQuery, 15);
+      var items = await fetchVideos(query, 15);
       spinner.style.display = 'none';
       if(items.length === 0){
         errEl.textContent = '動画が見つかりませんでした';
@@ -415,13 +513,17 @@
       items.sort(function(a, b){
         return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
       });
+      items = filterUnwatched(items);
       playVideo(items[0].id, true);
     } catch(e){
       spinner.style.display = 'none';
       errEl.textContent = e.message || '通信エラーが発生しました';
       errEl.style.display = 'block';
     }
-  });
+  }
+
+  document.getElementById('bathBtn').addEventListener('click', function(){ specialAutoPlay(bathQuery); });
+  document.getElementById('sleepBtn').addEventListener('click', function(){ specialAutoPlay(sleepQuery); });
 
   var ytPlayer = null;
   var apiReady = false;
@@ -450,8 +552,9 @@
 
   function playVideo(id, isBath){
     bathModeActive = !!isBath;
-    loadIntoPlayer(id);
     document.getElementById('overlay').classList.add('open');
+    setTimeout(function(){ loadIntoPlayer(id); }, 50);
+    markWatched(id);
     counter.count += 1;
     saveCounter(counter);
     renderCounter();
@@ -493,12 +596,14 @@
 
   document.getElementById('closeBtn').addEventListener('click', function(){
     document.getElementById('overlay').classList.remove('open');
-    if(ytPlayer && ytPlayer.stopVideo){ ytPlayer.stopVideo(); }
-    if(bathModeActive){
-      bathModeActive = false; // お風呂再生はクールダウンなし
-    } else {
-      startCooldown();
-    }
+    setTimeout(function(){
+      if(ytPlayer && ytPlayer.stopVideo){ ytPlayer.stopVideo(); }
+      if(bathModeActive){
+        bathModeActive = false; // お風呂/睡眠再生はクールダウンなし
+      } else {
+        startCooldown();
+      }
+    }, 300);
   });
 
   document.getElementById('searchBtn').addEventListener('click', doSearch);
