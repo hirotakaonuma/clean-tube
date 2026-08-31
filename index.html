@@ -137,6 +137,19 @@
     width:36px; height:36px; border-radius:18px; font-size:18px;
   }
   .overlay iframe{ width:100%; height:100%; border:0; }
+  #player{ width:100%; height:100%; }
+  .skip-controls{
+    position:absolute; bottom:max(70px, calc(70px + env(safe-area-inset-bottom)));
+    left:0; right:0; display:flex; justify-content:center; gap:28px; z-index:1001;
+    pointer-events:none;
+  }
+  .skip-controls button{
+    pointer-events:auto;
+    background:rgba(0,0,0,0.55); color:#fff; border:none;
+    width:56px; height:56px; border-radius:28px; font-size:18px; font-weight:600;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  }
+  .skip-controls button span{ font-size:10px; font-weight:500; }
 
   .cooldown-overlay{
     position:fixed; inset:0; background:var(--bg); z-index:900;
@@ -200,13 +213,19 @@
 
   <div class="overlay" id="overlay">
     <button class="close" id="closeBtn" aria-label="閉じる">✕</button>
-    <iframe id="playerFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <div id="player"></div>
+    <div class="skip-controls">
+      <button id="skipBack" aria-label="10秒戻す">⏪<span>10秒</span></button>
+      <button id="skipFwd" aria-label="10秒送る">⏩<span>10秒</span></button>
+    </div>
   </div>
 
   <div class="cooldown-overlay" id="cooldownOverlay">
     <div class="num" id="cooldownNum">10</div>
     <div class="msg" id="cooldownMsg">少し休憩してから次へ</div>
   </div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
 
 <script>
 (function(){
@@ -404,15 +423,50 @@
     }
   });
 
+  var ytPlayer = null;
+  var apiReady = false;
+  var pendingPlay = null;
+
+  window.onYouTubeIframeAPIReady = function(){
+    apiReady = true;
+    if(pendingPlay){
+      var p = pendingPlay; pendingPlay = null;
+      loadIntoPlayer(p.id);
+    }
+  };
+
+  function loadIntoPlayer(id){
+    if(!apiReady){ pendingPlay = { id: id }; return; }
+    if(ytPlayer && ytPlayer.loadVideoById){
+      ytPlayer.loadVideoById(id);
+    } else {
+      ytPlayer = new YT.Player('player', {
+        videoId: id,
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: { autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1 }
+      });
+    }
+  }
+
   function playVideo(id, isBath){
     bathModeActive = !!isBath;
-    var embedUrl = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
-    document.getElementById('playerFrame').src = embedUrl;
+    loadIntoPlayer(id);
     document.getElementById('overlay').classList.add('open');
     counter.count += 1;
     saveCounter(counter);
     renderCounter();
   }
+
+  document.getElementById('skipBack').addEventListener('click', function(){
+    if(ytPlayer && ytPlayer.getCurrentTime){
+      ytPlayer.seekTo(Math.max(0, ytPlayer.getCurrentTime() - 10), true);
+    }
+  });
+  document.getElementById('skipFwd').addEventListener('click', function(){
+    if(ytPlayer && ytPlayer.getCurrentTime){
+      ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10, true);
+    }
+  });
 
   function currentCooldownSeconds(){
     return COOLDOWN_STEP * counter.count; // 1本目10s, 2本目20s, 3本目30s ...
@@ -439,7 +493,7 @@
 
   document.getElementById('closeBtn').addEventListener('click', function(){
     document.getElementById('overlay').classList.remove('open');
-    document.getElementById('playerFrame').src = '';
+    if(ytPlayer && ytPlayer.stopVideo){ ytPlayer.stopVideo(); }
     if(bathModeActive){
       bathModeActive = false; // お風呂再生はクールダウンなし
     } else {
