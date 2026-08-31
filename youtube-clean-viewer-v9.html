@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Clean Tube">
+<title>Clean Tube</title>
+<style>
+  :root{
+    --bg: #F0EEE6;
+    --surface: #FAF9F5;
+    --surface-2: #FFFFFF;
+    --border: #E0DDD3;
+    --text: #2A2A26;
+    --text-secondary: #6B685F;
+    --text-muted: #949184;
+    --accent: #C96442;
+    --danger: #C4453D;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body{ height:100%; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding: max(12px, env(safe-area-inset-top)) 0 0;
+    display:flex; flex-direction:column; min-height:100vh;
+  }
+  h1{
+    font-size:15px;
+    font-weight:600;
+    margin:0 0 4px;
+    padding:0 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    color:var(--text-secondary);
+  }
+  .gear{ background:none; border:none; color:var(--text-muted); font-size:16px; padding:4px; }
+  .counter{ font-size:12px; color:var(--text-muted); padding:0 16px 8px; }
+
+  .settings{ display:none; margin:0 16px 12px; background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:14px; }
+  .settings.open{ display:block; }
+  .label{ font-size:12px; color:var(--text-secondary); margin-bottom:6px; }
+  .row{ display:flex; gap:8px; }
+  input[type=text], input[type=password]{
+    flex:1;
+    background:var(--surface-2);
+    border:0.5px solid var(--border);
+    color:var(--text);
+    border-radius:10px;
+    padding:9px 12px;
+    font-size:14px;
+    min-width:0;
+  }
+  input:focus{ outline:2px solid var(--accent); outline-offset:-1px; }
+  button{
+    background:var(--surface-2);
+    border:0.5px solid var(--border);
+    color:var(--text);
+    border-radius:10px;
+    padding:9px 14px;
+    font-size:14px;
+    font-weight:500;
+    white-space:nowrap;
+  }
+  button:active{ transform:scale(0.97); }
+  button.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .err{ font-size:12px; color:var(--danger); margin:0 16px 8px; display:none; }
+  .spinner{ font-size:12px; color:var(--text-muted); padding:4px 16px; display:none; }
+
+  main{ flex:1; display:flex; flex-direction:column; padding: 4px 16px 8px; min-height:0; }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:8px;
+    flex:1;
+    min-height:0;
+  }
+  .result-item{
+    display:flex; flex-direction:column;
+    cursor:pointer; background:var(--surface); border:0.5px solid var(--border);
+    border-radius:10px; padding:0; overflow:hidden; text-align:left;
+  }
+  .result-item img{ width:100%; aspect-ratio:16/10; object-fit:cover; display:block; }
+  .result-item .meta{ padding:6px 8px 8px; }
+  .result-item .title{
+    font-size:12px; font-weight:500; line-height:1.3; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .result-item .channel{ font-size:10px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .empty{ font-size:13px; color:var(--text-muted); grid-column:1/-1; }
+
+  .searchbar{
+    position:fixed;
+    left:16px; right:16px; bottom:calc(14px + env(safe-area-inset-bottom));
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    border-radius:16px;
+    padding: 10px 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    transition: top 0.2s ease, bottom 0.2s ease, transform 0.2s ease;
+    z-index:10;
+  }
+  .searchbar.centered{
+    top:38%; bottom:auto; transform:translateY(-50%);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+  }
+  .searchbar .row{ gap:8px; }
+  .searchbar input{ font-size:16px; padding:12px 14px; border-radius:12px; }
+  .searchbar button{ font-size:15px; padding:12px 18px; border-radius:12px; }
+  .bath-btn{
+    flex:0 0 auto;
+    width:52px; height:52px; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:14px;
+    background:var(--surface-2);
+    color:var(--accent);
+    font-size:30px;
+    line-height:1;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:#000; z-index:1000;
+    display:none; flex-direction:column;
+  }
+  .overlay.open{ display:flex; }
+  .overlay .close{
+    position:absolute; top:max(16px, env(safe-area-inset-top)); right:16px;
+    z-index:1001; background:rgba(0,0,0,0.5); color:#fff; border:none;
+    width:36px; height:36px; border-radius:18px; font-size:18px;
+  }
+  .overlay iframe{ width:100%; height:100%; border:0; }
+
+  .cooldown-overlay{
+    position:fixed; inset:0; background:var(--bg); z-index:900;
+    display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px;
+  }
+  .cooldown-overlay.open{ display:flex; }
+  .cooldown-overlay .num{ font-size:48px; font-weight:600; color:var(--accent); }
+  .cooldown-overlay .msg{ font-size:14px; color:var(--text-secondary); }
+
+  .chan-row{
+    display:flex; align-items:center; justify-content:space-between;
+    border:0.5px solid var(--border); border-radius:10px; background:var(--surface-2);
+    padding:9px 10px; margin-bottom:6px;
+  }
+  .chan-row a{ color:var(--accent); text-decoration:none; font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chan-row button{ padding:4px 10px; margin-left:8px; font-size:12px; }
+</style>
+</head>
+<body>
+
+  <h1>Clean Tube <button class="gear" id="settingsBtn" aria-label="設定">⚙</button></h1>
+  <div class="counter" id="dailyCounter"></div>
+
+  <div class="settings" id="settingsCard">
+    <div class="label">YouTube Data API キー</div>
+    <div class="row" style="margin-bottom:14px;">
+      <input type="password" id="apiKeyInput" placeholder="APIキーを貼り付け">
+      <button id="saveKeyBtn">保存</button>
+    </div>
+    <div class="label">♨️ ボタンで自動再生する検索キーワード</div>
+    <div class="row" style="margin-bottom:14px;">
+      <input type="text" id="bathQueryInput" placeholder="例: ラジオ">
+      <button id="saveBathBtn">保存</button>
+    </div>
+    <div class="label">よく見るチャンネル</div>
+    <div id="channelList"></div>
+    <div class="row" style="margin-top:8px;">
+      <input type="text" id="channelNameInput" placeholder="チャンネル名">
+      <input type="text" id="channelUrlInput" placeholder="チャンネルURL">
+    </div>
+    <button id="addChannelBtn" style="width:100%; margin-top:8px;">登録</button>
+    <div class="err" id="channelErr" style="margin:8px 0 0;"></div>
+  </div>
+
+  <div class="err" id="queryErr"></div>
+  <div class="spinner" id="spinner">検索中…</div>
+
+  <main>
+    <div class="grid" id="results">
+      <div class="empty">検索すると、ここに8件表示されます(10分未満の動画は除外)。</div>
+    </div>
+  </main>
+
+  <div class="searchbar" id="searchbar">
+    <div class="row">
+      <button class="bath-btn" id="bathBtn" aria-label="お風呂用の動画を自動再生">♨</button>
+      <input type="text" id="queryInput" placeholder="見たい動画・トピックを検索">
+      <button class="primary" id="searchBtn">検索</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <button class="close" id="closeBtn" aria-label="閉じる">✕</button>
+    <iframe id="playerFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+
+  <div class="cooldown-overlay" id="cooldownOverlay">
+    <div class="num" id="cooldownNum">10</div>
+    <div class="msg" id="cooldownMsg">少し休憩してから次へ</div>
+  </div>
+
+<script>
+(function(){
+  var KEY_STORAGE = 'clean-tube-api-key';
+  var CHAN_STORAGE = 'clean-tube-channels';
+  var COUNTER_STORAGE = 'clean-tube-daily-counter';
+  var BATH_QUERY_STORAGE = 'clean-tube-bath-query';
+  var RESULT_COUNT = 8;
+  var COOLDOWN_STEP = 10;      // 1本ごとに+10秒
+  var MIN_DURATION_SECONDS = 600; // 10分未満は除外(通常検索のみ)
+
+  var bathModeActive = false; // ♨️経由の再生中はクールダウンをスキップ
+
+  // ---- daily counter (表示のみ、ロックはしない) ----
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function loadCounter(){
+    try{
+      var raw = JSON.parse(localStorage.getItem(COUNTER_STORAGE) || '{}');
+      if(raw.date !== todayStr()) return { date: todayStr(), count: 0 };
+      return raw;
+    } catch(e){ return { date: todayStr(), count: 0 }; }
+  }
+  function saveCounter(c){ localStorage.setItem(COUNTER_STORAGE, JSON.stringify(c)); }
+  var counter = loadCounter();
+  function renderCounter(){
+    document.getElementById('dailyCounter').textContent = '今日の再生: ' + counter.count + '回';
+  }
+  renderCounter();
+
+  // ---- settings / API key ----
+  var apiKey = localStorage.getItem(KEY_STORAGE) || '';
+  document.getElementById('apiKeyInput').value = apiKey;
+
+  document.getElementById('settingsBtn').addEventListener('click', function(){
+    document.getElementById('settingsCard').classList.toggle('open');
+  });
+  if(!apiKey){ document.getElementById('settingsCard').classList.add('open'); }
+
+  document.getElementById('saveKeyBtn').addEventListener('click', function(){
+    apiKey = document.getElementById('apiKeyInput').value.trim();
+    localStorage.setItem(KEY_STORAGE, apiKey);
+    document.getElementById('settingsCard').classList.remove('open');
+  });
+
+  // ---- bath query setting ----
+  var bathQuery = localStorage.getItem(BATH_QUERY_STORAGE) || 'ラジオ';
+  document.getElementById('bathQueryInput').value = bathQuery;
+  document.getElementById('saveBathBtn').addEventListener('click', function(){
+    var v = document.getElementById('bathQueryInput').value.trim();
+    if(v){
+      bathQuery = v;
+      localStorage.setItem(BATH_QUERY_STORAGE, v);
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  // ---- search bar reposition on focus ----
+  var queryInput = document.getElementById('queryInput');
+  var searchbar = document.getElementById('searchbar');
+  var blurTimer = null;
+  queryInput.addEventListener('focus', function(){
+    if(blurTimer){ clearTimeout(blurTimer); blurTimer = null; }
+    searchbar.classList.add('centered');
+  });
+  queryInput.addEventListener('blur', function(){
+    blurTimer = setTimeout(function(){ searchbar.classList.remove('centered'); }, 150);
+  });
+
+  // ---- helpers ----
+  function parseDuration(iso){
+    var m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if(!m) return 0;
+    var h = parseInt(m[1] || 0, 10);
+    var min = parseInt(m[2] || 0, 10);
+    var s = parseInt(m[3] || 0, 10);
+    return h*3600 + min*60 + s;
+  }
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+
+  async function fetchVideos(q, maxResults){
+    var searchUrl = 'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults='
+      + maxResults + '&q=' + encodeURIComponent(q) + '&key=' + encodeURIComponent(apiKey);
+    var searchRes = await fetch(searchUrl);
+    var searchData = await searchRes.json();
+    if(searchData.error) throw new Error(searchData.error.message || 'APIエラー');
+
+    var ids = (searchData.items || []).map(function(i){ return i.id.videoId; }).filter(Boolean);
+    if(ids.length === 0) return [];
+
+    var detailsUrl = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id='
+      + ids.join(',') + '&key=' + encodeURIComponent(apiKey);
+    var detailsRes = await fetch(detailsUrl);
+    var detailsData = await detailsRes.json();
+    if(detailsData.error) throw new Error(detailsData.error.message || 'APIエラー');
+    return detailsData.items || [];
+  }
+
+  // ---- normal search ----
+  async function doSearch(){
+    var errEl = document.getElementById('queryErr');
+    var q = queryInput.value.trim();
+    errEl.style.display = 'none';
+    document.getElementById('results').innerHTML = '';
+    queryInput.blur();
+
+    if(!apiKey){
+      errEl.textContent = '先に⚙からAPIキーを保存してください';
+      errEl.style.display = 'block';
+      document.getElementById('settingsCard').classList.add('open');
+      return;
+    }
+    if(!q){
+      errEl.textContent = 'キーワードを入力してください';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    var spinner = document.getElementById('spinner');
+    spinner.style.display = 'block';
+
+    try{
+      var items = await fetchVideos(q, 25);
+      spinner.style.display = 'none';
+
+      items = items.filter(function(item){
+        return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
+      });
+      items.sort(function(a, b){
+        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
+      });
+      items = items.slice(0, RESULT_COUNT);
+
+      if(items.length === 0){
+        errEl.textContent = '10分以上の動画が見つかりませんでした';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      var container = document.getElementById('results');
+      items.forEach(function(item){
+        var snippet = item.snippet;
+        var thumb = (snippet.thumbnails.medium || snippet.thumbnails.default).url;
+        var el = document.createElement('button');
+        el.className = 'result-item';
+        el.innerHTML =
+          '<img src="' + thumb + '" alt="">' +
+          '<div class="meta">' +
+            '<div class="title">' + escapeHtml(snippet.title) + '</div>' +
+            '<div class="channel">' + escapeHtml(snippet.channelTitle) + '</div>' +
+          '</div>';
+        el.addEventListener('click', function(){ playVideo(item.id, false); });
+        container.appendChild(el);
+      });
+    } catch(e){
+      spinner.style.display = 'none';
+      errEl.textContent = e.message || '通信エラーが発生しました';
+      errEl.style.display = 'block';
+    }
+  }
+
+  // ---- bath button: auto-play top result for bathQuery, no cooldown ----
+  document.getElementById('bathBtn').addEventListener('click', async function(){
+    var errEl = document.getElementById('queryErr');
+    errEl.style.display = 'none';
+
+    if(!apiKey){
+      errEl.textContent = '先に⚙からAPIキーを保存してください';
+      errEl.style.display = 'block';
+      document.getElementById('settingsCard').classList.add('open');
+      return;
+    }
+
+    var spinner = document.getElementById('spinner');
+    spinner.style.display = 'block';
+    try{
+      var items = await fetchVideos(bathQuery, 15);
+      spinner.style.display = 'none';
+      if(items.length === 0){
+        errEl.textContent = '動画が見つかりませんでした';
+        errEl.style.display = 'block';
+        return;
+      }
+      items.sort(function(a, b){
+        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
+      });
+      playVideo(items[0].id, true);
+    } catch(e){
+      spinner.style.display = 'none';
+      errEl.textContent = e.message || '通信エラーが発生しました';
+      errEl.style.display = 'block';
+    }
+  });
+
+  function playVideo(id, isBath){
+    bathModeActive = !!isBath;
+    var embedUrl = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+    document.getElementById('playerFrame').src = embedUrl;
+    document.getElementById('overlay').classList.add('open');
+    counter.count += 1;
+    saveCounter(counter);
+    renderCounter();
+  }
+
+  function currentCooldownSeconds(){
+    return COOLDOWN_STEP * counter.count; // 1本目10s, 2本目20s, 3本目30s ...
+  }
+
+  function startCooldown(){
+    var overlayEl = document.getElementById('cooldownOverlay');
+    var numEl = document.getElementById('cooldownNum');
+    var msgEl = document.getElementById('cooldownMsg');
+    var remaining = currentCooldownSeconds();
+    numEl.textContent = remaining;
+    msgEl.textContent = counter.count + '本目を見ました。少し休憩してから次へ';
+    overlayEl.classList.add('open');
+    var timer = setInterval(function(){
+      remaining -= 1;
+      if(remaining <= 0){
+        clearInterval(timer);
+        overlayEl.classList.remove('open');
+        return;
+      }
+      numEl.textContent = remaining;
+    }, 1000);
+  }
+
+  document.getElementById('closeBtn').addEventListener('click', function(){
+    document.getElementById('overlay').classList.remove('open');
+    document.getElementById('playerFrame').src = '';
+    if(bathModeActive){
+      bathModeActive = false; // お風呂再生はクールダウンなし
+    } else {
+      startCooldown();
+    }
+  });
+
+  document.getElementById('searchBtn').addEventListener('click', doSearch);
+  queryInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ doSearch(); }
+  });
+
+  // ---- channels ----
+  function loadChannels(){
+    try{
+      var raw = localStorage.getItem(CHAN_STORAGE);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e){ return []; }
+  }
+  function saveChannels(list){
+    try{ localStorage.setItem(CHAN_STORAGE, JSON.stringify(list)); } catch(e){}
+  }
+  var channels = loadChannels();
+
+  function renderChannels(){
+    var list = document.getElementById('channelList');
+    list.innerHTML = '';
+    if(channels.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.style.gridColumn = 'auto';
+      empty.textContent = 'まだ登録されていません。';
+      list.appendChild(empty);
+      return;
+    }
+    channels.forEach(function(c, idx){
+      var row = document.createElement('div');
+      row.className = 'chan-row';
+      var a = document.createElement('a');
+      a.href = c.url; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = c.name;
+      var del = document.createElement('button');
+      del.textContent = '削除';
+      del.addEventListener('click', function(){
+        channels.splice(idx, 1);
+        saveChannels(channels);
+        renderChannels();
+      });
+      row.appendChild(a);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('addChannelBtn').addEventListener('click', function(){
+    var errEl = document.getElementById('channelErr');
+    var name = document.getElementById('channelNameInput').value.trim();
+    var url = document.getElementById('channelUrlInput').value.trim();
+    if(!name || !url){
+      errEl.textContent = 'チャンネル名とURLの両方を入力してください';
+      errEl.style.display = 'block';
+      return;
+    }
+    if(!/^https?:\/\//.test(url)){
+      errEl.textContent = 'URLはhttp(s)://から始めてください';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+    channels.push({ name: name, url: url });
+    saveChannels(channels);
+    document.getElementById('channelNameInput').value = '';
+    document.getElementById('channelUrlInput').value = '';
+    renderChannels();
+  });
+
+  renderChannels();
+})();
+</script>
+</body>
+</html>
