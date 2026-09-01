@@ -470,4 +470,831 @@
     <div class="screen-cover" id="screenCover">
       <div class="radio-dial">
         <div class="radio-dial-glow"></div>
-      </
+      </div>
+      <div class="radio-title" id="radioTitle">再生中の音声</div>
+      <div class="radio-time" id="radioTime">00:00 / 00:00</div>
+      <button class="radio-ctrl-btn" id="radioPlayPauseBtn">⏸</button>
+      <div class="note">画面を見えにくくしています(タップで解除)</div>
+    </div>
+  </div>
+
+  <div class="cooldown-overlay" id="cooldownOverlay">
+    <div class="num" id="cooldownNum">10</div>
+    <div class="msg" id="cooldownMsg">少し休憩してから次へ</div>
+  </div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+
+<script>
+(async function(){
+  var KEY_STORAGE = 'clean-tube-api-key';
+  var CHAN_STORAGE = 'clean-tube-channels';
+  var COUNTER_STORAGE = 'clean-tube-daily-counter';
+  var BATH_QUERY_STORAGE = 'clean-tube-bath-query';
+  var RESULT_COUNT = 8;
+  var COOLDOWN_STEP = 10;      // 1本ごとに+10秒
+  var MIN_DURATION_SECONDS = 600; // 10分未満は除外(通常検索のみ)
+
+  // ---- 他端末との同期(Firebase Realtime Database) ----
+  var FIREBASE_URL_STORAGE = 'clean-tube-firebase-url';
+  var firebaseUrl = localStorage.getItem(FIREBASE_URL_STORAGE) || '';
+  var SYNC_KEYS = [
+    'clean-tube-api-key','clean-tube-channels','clean-tube-daily-counter',
+    'clean-tube-bath-query','clean-tube-sleep-query','clean-tube-gacha-queries',
+    'clean-tube-quick-tags','clean-tube-watched-ids','clean-tube-daily-goal',
+    'clean-tube-stamps','clean-tube-stamp-checked-date','clean-tube-total-exp',
+    'clean-tube-last-stop-ts'
+  ];
+  function collectSyncState(){
+    var obj = {};
+    SYNC_KEYS.forEach(function(k){
+      var v = localStorage.getItem(k);
+      if(v !== null){ obj[k] = v; }
+    });
+    return obj;
+  }
+  function applySyncState(obj){
+    if(!obj) return;
+    Object.keys(obj).forEach(function(k){
+      if(SYNC_KEYS.indexOf(k) !== -1){ localStorage.setItem(k, obj[k]); }
+    });
+  }
+  async function pullRemoteState(){
+    if(!firebaseUrl) return;
+    try{
+      var res = await fetch(firebaseUrl.replace(/\/$/, '') + '/state.json');
+      var data = await res.json();
+      applySyncState(data);
+    } catch(e){ /* オフラインなどは無視してローカルのデータで続行 */ }
+  }
+  var pushTimer = null;
+  function pushRemoteState(){
+    if(!firebaseUrl) return;
+    if(pushTimer){ clearTimeout(pushTimer); }
+    pushTimer = setTimeout(function(){
+      fetch(firebaseUrl.replace(/\/$/, '') + '/state.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collectSyncState())
+      }).catch(function(){});
+    }, 800);
+  }
+
+  await pullRemoteState(); // 他端末のデータがあれば、ここでこの端末に反映してから読み込みを続ける
+
+  // ---- watched history (視聴済みの動画は二度と出さない) ----
+  var WATCHED_STORAGE = 'clean-tube-watched-ids';
+  function loadWatched(){
+    try{ return JSON.parse(localStorage.getItem(WATCHED_STORAGE) || '[]'); }
+    catch(e){ return []; }
+  }
+  function markWatched(id){
+    var w = loadWatched();
+    if(w.indexOf(id) === -1){
+      w.push(id);
+      if(w.length > 500){ w = w.slice(w.length - 500); }
+      localStorage.setItem(WATCHED_STORAGE, JSON.stringify(w));
+      pushRemoteState();
+    }
+  }
+  function filterUnwatched(items){
+    var w = loadWatched();
+    var filtered = items.filter(function(item){ return w.indexOf(item.id) === -1; });
+    return filtered.length > 0 ? filtered : items; // 全部視聴済みなら元のリストを返す(手詰まり防止)
+  }
+
+  // ---- daily counter (検索から手動再生した回数のみをカウント) ----
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function loadCounter(){
+    try{
+      var raw = JSON.parse(localStorage.getItem(COUNTER_STORAGE) || '{}');
+      if(raw.date !== todayStr()) return { date: todayStr(), count: 0 };
+      return raw;
+    } catch(e){ return { date: todayStr(), count: 0 }; }
+  }
+  function saveCounter(c){ localStorage.setItem(COUNTER_STORAGE, JSON.stringify(c)); pushRemoteState(); }
+
+  // ---- daily goal (⚙で設定) ----
+  var DAILY_GOAL_STORAGE = 'clean-tube-daily-goal';
+  var dailyGoal = parseInt(localStorage.getItem(DAILY_GOAL_STORAGE), 10) || 3;
+  document.getElementById('dailyGoalInput').value = dailyGoal;
+  document.getElementById('saveGoalBtn').addEventListener('click', function(){
+    var v = parseInt(document.getElementById('dailyGoalInput').value, 10);
+    if(v && v > 0){
+      dailyGoal = v;
+      localStorage.setItem(DAILY_GOAL_STORAGE, String(v));
+      pushRemoteState();
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  // ---- ご褒美スタンプ ----
+  var STAMP_STORAGE = 'clean-tube-stamps';
+  var STAMP_CHECK_STORAGE = 'clean-tube-stamp-checked-date';
+  function loadStamps(){
+    try{ return JSON.parse(localStorage.getItem(STAMP_STORAGE) || '[]'); }
+    catch(e){ return []; }
+  }
+  function renderStamps(){
+    var stamps = loadStamps();
+    var row = document.getElementById('stampRow');
+    row.innerHTML = '';
+    if(stamps.length === 0){
+      var hint = document.createElement('span');
+      hint.className = 'stamp-hint';
+      hint.textContent = '目標達成の翌日にスタンプが貯まります';
+      row.appendChild(hint);
+      return;
+    }
+    stamps.slice(-14).forEach(function(){
+      var span = document.createElement('span');
+      span.className = 'stamp-icon';
+      span.textContent = '💮';
+      row.appendChild(span);
+    });
+  }
+  function awardStamp(dateStr){
+    var stamps = loadStamps();
+    if(stamps.indexOf(dateStr) === -1){
+      stamps.push(dateStr);
+      localStorage.setItem(STAMP_STORAGE, JSON.stringify(stamps));
+      pushRemoteState();
+    }
+    renderStamps();
+    showIdleToast('🎉 前日の目標達成、スタンプ獲得!');
+  }
+
+  // 日付が変わった時、前日分の検索視聴回数を目標と照らしてスタンプ判定する(リロード連打でも二重判定しない)
+  function checkDailyRolloverForStamp(){
+    var raw;
+    try{ raw = JSON.parse(localStorage.getItem(COUNTER_STORAGE) || 'null'); }
+    catch(e){ raw = null; }
+    if(raw && raw.date && raw.date !== todayStr()){
+      var alreadyChecked = localStorage.getItem(STAMP_CHECK_STORAGE);
+      if(alreadyChecked !== raw.date){
+        if(typeof raw.count === 'number' && raw.count <= dailyGoal){
+          awardStamp(raw.date);
+        }
+        localStorage.setItem(STAMP_CHECK_STORAGE, raw.date);
+      }
+      saveCounter({ date: todayStr(), count: 0 });
+    }
+  }
+  checkDailyRolloverForStamp();
+
+  var counter = loadCounter();
+  function renderCounter(){
+    document.getElementById('dailyCounter').textContent =
+      '今日の検索視聴: ' + counter.count + ' / 目標' + dailyGoal + '回';
+  }
+  renderCounter();
+
+  // ---- 今日の知恵(名著・哲学・心理学のエッセンスを一行で) ----
+  var WISDOM_QUOTES = [
+    { text:'退屈は、何も起きていないのではない。心が何かを欲しがっている合図だ。', tag:'心理学' },
+    { text:'刺激を求める心を止める方法は、ただ立ち止まることだけだ。', tag:'哲学' },
+    { text:'時間を制する者は、人生を制する。', tag:'処世訓' },
+    { text:'何も足さない時間の中でこそ、本当の自分に出会える。', tag:'禅語' },
+    { text:'習慣とは、日々の小さな選択が積み重なった影である。', tag:'哲学' },
+    { text:'退屈に耐えられる心は、集中できる心と同じものである。', tag:'心理学' },
+    { text:'満たされない気持ちは、埋めるのではなく眺めるとよい。', tag:'禅語' },
+    { text:'今この瞬間だけが、あなたが本当に生きている時間である。', tag:'哲学' },
+    { text:'怠惰とは休むことではなく、目的を見失うことだ。', tag:'処世訓' },
+    { text:'画面の中に答えはない。答えは、画面を閉じた後の時間にある。', tag:'心理学' },
+    { text:'小さな我慢の積み重ねが、大きな自由をつくる。', tag:'処世訓' },
+    { text:'本当の豊かさは、何を持つかではなく、何を手放せるかで決まる。', tag:'哲学' },
+    { text:'静けさに耐えられない心は、まだ何かに支配されている。', tag:'禅語' },
+    { text:'人は、退屈と向き合う力を失った分だけ、自由を失う。', tag:'心理学' },
+    { text:'今日は何を"見た"かではなく、何を"考えた"かを思い出せるように。', tag:'処世訓' },
+    { text:'急いでいる時ほど、遠回りに見える道を選んでみるとよい。', tag:'哲学' },
+    { text:'心を鍛えるとは、刺激を減らす勇気を持つことでもある。', tag:'心理学' },
+    { text:'一期一会。この時間は、二度と戻らない。', tag:'禅語' }
+  ];
+  var lastWisdomIdx = -1;
+  function renderWisdom(idx){
+    var q = WISDOM_QUOTES[idx];
+    document.getElementById('wisdomLabel').textContent = '今日の知恵 ― ' + q.tag;
+    document.getElementById('wisdomText').textContent = q.text;
+    lastWisdomIdx = idx;
+  }
+  function dayOfYear(){
+    var now = new Date();
+    var start = new Date(now.getFullYear(), 0, 0);
+    return Math.floor((now - start) / 86400000);
+  }
+  renderWisdom(dayOfYear() % WISDOM_QUOTES.length); // 「今日の一言」として日替わりで固定表示
+  document.getElementById('wisdomBox').addEventListener('click', function(){
+    var next;
+    do{ next = Math.floor(Math.random() * WISDOM_QUOTES.length); } while(next === lastWisdomIdx && WISDOM_QUOTES.length > 1);
+    renderWisdom(next); // タップでその場でシャッフルも可能
+  });
+
+  // ---- デジタルデトックスEXP / レベル ----
+  var EXP_STORAGE = 'clean-tube-total-exp';
+  var LAST_STOP_STORAGE = 'clean-tube-last-stop-ts';
+  var EXP_PER_LEVEL = 100;
+  var RING_CIRCUMFERENCE = 326.7; // 2 * PI * r(52)
+
+  function loadExp(){ return parseInt(localStorage.getItem(EXP_STORAGE), 10) || 0; }
+  function saveExp(v){ localStorage.setItem(EXP_STORAGE, String(v)); }
+  function addExp(amount){
+    var v = loadExp() + amount;
+    saveExp(v);
+    renderExp();
+    pushRemoteState();
+    return v;
+  }
+
+  function renderExp(){
+    var total = loadExp();
+    var level = Math.floor(total / EXP_PER_LEVEL) + 1;
+    var into = total % EXP_PER_LEVEL;
+    var pct = into / EXP_PER_LEVEL;
+    document.getElementById('expLevelText').textContent = 'Lv.' + level;
+    document.getElementById('expSubText').textContent = into + ' / ' + EXP_PER_LEVEL + ' EXP';
+    document.getElementById('ringFg').style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - pct));
+  }
+
+  var idleToastTimer = null;
+  function showIdleToast(msg){
+    var t = document.getElementById('idleToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    if(idleToastTimer){ clearTimeout(idleToastTimer); }
+    idleToastTimer = setTimeout(function(){ t.classList.remove('show'); }, 4000);
+  }
+
+  function markStopped(){
+    localStorage.setItem(LAST_STOP_STORAGE, String(Date.now()));
+    pushRemoteState();
+  }
+
+  function runIdleBonus(){
+    var last = parseInt(localStorage.getItem(LAST_STOP_STORAGE), 10);
+    var now = Date.now();
+    if(last){
+      var elapsedHours = (now - last) / 3600000;
+      var cappedHours = Math.min(elapsedHours, 24); // 1日分を上限にキャップ
+      var bonusHours = Math.floor(cappedHours);
+      if(bonusHours >= 1){
+        var bonus = bonusHours * 10;
+        addExp(bonus);
+        showIdleToast(bonusHours + '時間放置達成!+' + bonus + ' EXP');
+      }
+    }
+    markStopped();
+  }
+
+  renderExp();
+  renderStamps();
+  runIdleBonus();
+
+  // ---- settings / API key ----
+  document.getElementById('firebaseUrlInput').value = firebaseUrl;
+  document.getElementById('saveFirebaseBtn').addEventListener('click', function(){
+    var v = document.getElementById('firebaseUrlInput').value.trim();
+    firebaseUrl = v;
+    localStorage.setItem(FIREBASE_URL_STORAGE, v);
+    pushRemoteState();
+    document.getElementById('settingsCard').classList.remove('open');
+  });
+
+  var apiKey = localStorage.getItem(KEY_STORAGE) || '';
+  document.getElementById('apiKeyInput').value = apiKey;
+
+  document.getElementById('settingsBtn').addEventListener('click', function(){
+    document.getElementById('settingsCard').classList.toggle('open');
+  });
+  if(!apiKey){ document.getElementById('settingsCard').classList.add('open'); }
+
+  document.getElementById('saveKeyBtn').addEventListener('click', function(){
+    apiKey = document.getElementById('apiKeyInput').value.trim();
+    localStorage.setItem(KEY_STORAGE, apiKey);
+    pushRemoteState();
+    document.getElementById('settingsCard').classList.remove('open');
+  });
+
+  // ---- bath query setting ----
+  var bathQuery = localStorage.getItem(BATH_QUERY_STORAGE) || 'ラジオ';
+  document.getElementById('bathQueryInput').value = bathQuery;
+  document.getElementById('saveBathBtn').addEventListener('click', function(){
+    var v = document.getElementById('bathQueryInput').value.trim();
+    if(v){
+      bathQuery = v;
+      localStorage.setItem(BATH_QUERY_STORAGE, v);
+      pushRemoteState();
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  // ---- sleep query setting ----
+  var SLEEP_QUERY_STORAGE = 'clean-tube-sleep-query';
+  var sleepQuery = localStorage.getItem(SLEEP_QUERY_STORAGE) || '睡眠 雑学';
+  document.getElementById('sleepQueryInput').value = sleepQuery;
+  document.getElementById('saveSleepBtn').addEventListener('click', function(){
+    var v = document.getElementById('sleepQueryInput').value.trim();
+    if(v){
+      sleepQuery = v;
+      localStorage.setItem(SLEEP_QUERY_STORAGE, v);
+      pushRemoteState();
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  // ---- gacha query list ----
+  var GACHA_QUERY_STORAGE = 'clean-tube-gacha-queries';
+  var gachaQueries = (localStorage.getItem(GACHA_QUERY_STORAGE) || 'TED,ゆる言語学ラジオ,教養,ドキュメンタリー')
+    .split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  document.getElementById('gachaQueryInput').value = gachaQueries.join(',');
+  document.getElementById('saveGachaBtn').addEventListener('click', function(){
+    var v = document.getElementById('gachaQueryInput').value.trim();
+    if(v){
+      gachaQueries = v.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+      localStorage.setItem(GACHA_QUERY_STORAGE, gachaQueries.join(','));
+      pushRemoteState();
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  async function gachaPlay(){
+    var errEl = document.getElementById('queryErr');
+    errEl.style.display = 'none';
+
+    if(!apiKey){
+      errEl.textContent = '先に⚙からAPIキーを保存してください';
+      errEl.style.display = 'block';
+      document.getElementById('settingsCard').classList.add('open');
+      return;
+    }
+    if(gachaQueries.length === 0){ return; }
+
+    var pickedQuery = gachaQueries[Math.floor(Math.random() * gachaQueries.length)];
+    var spinner = document.getElementById('spinner');
+    spinner.style.display = 'block';
+    try{
+      var items = await fetchVideos(pickedQuery, 25);
+      items = items.filter(function(item){
+        return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
+      });
+      items = filterUnwatched(items);
+      spinner.style.display = 'none';
+      if(items.length === 0){
+        errEl.textContent = '「' + pickedQuery + '」で動画が見つかりませんでした';
+        errEl.style.display = 'block';
+        return;
+      }
+      items.sort(function(a, b){
+        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
+      });
+      var topN = items.slice(0, Math.min(10, items.length));
+      var chosen = topN[Math.floor(Math.random() * topN.length)];
+      playVideo(chosen.id, 'gacha', chosen.snippet.title);
+    } catch(e){
+      spinner.style.display = 'none';
+      errEl.textContent = e.message || '通信エラーが発生しました';
+      errEl.style.display = 'block';
+    }
+  }
+
+  // ---- quick tags ----
+  var QUICK_TAGS_STORAGE = 'clean-tube-quick-tags';
+  var quickTags = (localStorage.getItem(QUICK_TAGS_STORAGE) || '動物犬猫癒し,AI勉強,投資勉強').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  document.getElementById('quickTagsInput').value = quickTags.join(',');
+
+  function renderQuickTags(){
+    var wrap = document.getElementById('quickTags');
+    wrap.innerHTML = '';
+
+    quickTags.forEach(function(tag){
+      var btn = document.createElement('button');
+      btn.textContent = tag;
+      btn.addEventListener('click', function(){
+        queryInput.value = tag;
+        doSearch();
+      });
+      wrap.appendChild(btn);
+    });
+  }
+  renderQuickTags();
+  document.getElementById('gachaBigBtn').addEventListener('click', gachaPlay);
+
+  document.getElementById('saveTagsBtn').addEventListener('click', function(){
+    var v = document.getElementById('quickTagsInput').value.trim();
+    if(v){
+      quickTags = v.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+      localStorage.setItem(QUICK_TAGS_STORAGE, quickTags.join(','));
+      pushRemoteState();
+      renderQuickTags();
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  // ---- search bar reposition on focus ----
+  var queryInput = document.getElementById('queryInput');
+  var bottomDock = document.getElementById('bottomDock');
+  var blurTimer = null;
+  queryInput.addEventListener('focus', function(){
+    if(blurTimer){ clearTimeout(blurTimer); blurTimer = null; }
+    bottomDock.classList.add('centered');
+  });
+  queryInput.addEventListener('blur', function(){
+    blurTimer = setTimeout(function(){ bottomDock.classList.remove('centered'); }, 150);
+  });
+
+  // ---- helpers ----
+  function parseDuration(iso){
+    var m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if(!m) return 0;
+    var h = parseInt(m[1] || 0, 10);
+    var min = parseInt(m[2] || 0, 10);
+    var s = parseInt(m[3] || 0, 10);
+    return h*3600 + min*60 + s;
+  }
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+
+  async function fetchVideos(q, maxResults){
+    var searchUrl = 'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults='
+      + maxResults + '&q=' + encodeURIComponent(q) + '&regionCode=JP&relevanceLanguage=ja&key=' + encodeURIComponent(apiKey);
+    var searchRes = await fetch(searchUrl);
+    var searchData = await searchRes.json();
+    if(searchData.error) throw new Error(searchData.error.message || 'APIエラー');
+
+    var ids = (searchData.items || []).map(function(i){ return i.id.videoId; }).filter(Boolean);
+    if(ids.length === 0) return [];
+
+    var detailsUrl = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id='
+      + ids.join(',') + '&key=' + encodeURIComponent(apiKey);
+    var detailsRes = await fetch(detailsUrl);
+    var detailsData = await detailsRes.json();
+    if(detailsData.error) throw new Error(detailsData.error.message || 'APIエラー');
+    return detailsData.items || [];
+  }
+
+  // ---- normal search ----
+  async function doSearch(){
+    var errEl = document.getElementById('queryErr');
+    var q = queryInput.value.trim();
+    errEl.style.display = 'none';
+    document.getElementById('results').innerHTML = '';
+    queryInput.blur();
+
+    if(!apiKey){
+      errEl.textContent = '先に⚙からAPIキーを保存してください';
+      errEl.style.display = 'block';
+      document.getElementById('settingsCard').classList.add('open');
+      return;
+    }
+    if(!q){
+      errEl.textContent = 'キーワードを入力してください';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    var spinner = document.getElementById('spinner');
+    spinner.style.display = 'block';
+
+    try{
+      var items = await fetchVideos(q, 25);
+      spinner.style.display = 'none';
+
+      items = items.filter(function(item){
+        return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
+      });
+      items = filterUnwatched(items);
+      // 再生回数ソートは廃止。YouTube APIが返す関連度順(デフォルト)をそのまま採用する
+      items = items.slice(0, RESULT_COUNT);
+
+      if(items.length === 0){
+        errEl.textContent = '10分以上の動画が見つかりませんでした';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      var container = document.getElementById('results');
+      items.forEach(function(item){
+        var snippet = item.snippet;
+        var thumb = (snippet.thumbnails.medium || snippet.thumbnails.default).url;
+        var el = document.createElement('button');
+        el.className = 'result-item';
+        el.innerHTML =
+          '<img src="' + thumb + '" alt="">' +
+          '<div class="meta">' +
+            '<div class="title">' + escapeHtml(snippet.title) + '</div>' +
+            '<div class="channel">' + escapeHtml(snippet.channelTitle) + '</div>' +
+          '</div>';
+        el.addEventListener('click', function(){ playVideo(item.id, 'search', snippet.title); });
+        container.appendChild(el);
+      });
+    } catch(e){
+      spinner.style.display = 'none';
+      errEl.textContent = e.message || '通信エラーが発生しました';
+      errEl.style.display = 'block';
+    }
+  }
+
+  // ---- ♨️ / 💤: auto-play top unwatched result for a preset query, no cooldown, no count ----
+  async function specialAutoPlay(query, source){
+    var errEl = document.getElementById('queryErr');
+    errEl.style.display = 'none';
+
+    if(!apiKey){
+      errEl.textContent = '先に⚙からAPIキーを保存してください';
+      errEl.style.display = 'block';
+      document.getElementById('settingsCard').classList.add('open');
+      return;
+    }
+
+    var spinner = document.getElementById('spinner');
+    spinner.style.display = 'block';
+    try{
+      var items = await fetchVideos(query, 15);
+      spinner.style.display = 'none';
+      if(items.length === 0){
+        errEl.textContent = '動画が見つかりませんでした';
+        errEl.style.display = 'block';
+        return;
+      }
+      items.sort(function(a, b){
+        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
+      });
+      items = filterUnwatched(items);
+      playVideo(items[0].id, source, items[0].snippet.title);
+    } catch(e){
+      spinner.style.display = 'none';
+      errEl.textContent = e.message || '通信エラーが発生しました';
+      errEl.style.display = 'block';
+    }
+  }
+
+  document.getElementById('bathBtn').addEventListener('click', function(){ specialAutoPlay(bathQuery, 'bath'); });
+  document.getElementById('sleepBtn').addEventListener('click', function(){ specialAutoPlay(sleepQuery, 'sleep'); });
+
+  var ytPlayer = null;
+  var apiReady = false;
+  var pendingPlay = null;
+
+  window.onYouTubeIframeAPIReady = function(){
+    // クリックされてから YT.Player を生成すると読み込みが遅いので、
+    // API準備完了の時点で裏側(非表示のオーバーレイ内)にプレイヤーを先に用意しておく。
+    // ユーザーがクリックした際は loadVideoById を呼ぶだけで済むため体感速度が大きく改善する。
+    // ここで videoId を指定せずに生成すると、動画未選択の状態として
+    // YouTube側の「その他の動画」候補グリッドが表示されたままになってしまうため、
+    // 何か1本(Google公式のIFrame APIデモ動画)をcue状態(再生はしない)で読み込ませておく。
+    ytPlayer = new YT.Player('player', {
+      videoId: 'M7lc1UVf-VE',
+      host: 'https://www.youtube-nocookie.com',
+      playerVars: { autoplay: 0, rel: 0, playsinline: 1, modestbranding: 1 },
+      events: {
+        onReady: function(){
+          apiReady = true;
+          document.getElementById('videoLoading').classList.remove('show');
+          if(pendingPlay){
+            var p = pendingPlay; pendingPlay = null;
+            loadIntoPlayer(p.id);
+          }
+        },
+        onStateChange: function(e){
+          if(e.data !== -1){ document.getElementById('videoLoading').classList.remove('show'); }
+          enforceEcoQuality();
+          handlePlayerStateChange(e.data);
+        }
+      }
+    });
+  };
+
+  // ---- 音声エコモード: 通信量節約のため常に最低画質(音声中心)で再生する ----
+  function enforceEcoQuality(){
+    if(ytPlayer && ytPlayer.setPlaybackQuality){
+      try{ ytPlayer.setPlaybackQuality('tiny'); } catch(e){}
+    }
+  }
+
+  var endGuardInterval = null;
+
+  function stopEndGuardTimer(){
+    if(endGuardInterval){ clearInterval(endGuardInterval); endGuardInterval = null; }
+    document.getElementById('endGuard').classList.remove('show');
+  }
+
+  function handlePlayerStateChange(state){
+    // state: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued
+    if(state === 1){ // playing
+      stopEndGuardTimer();
+      endGuardInterval = setInterval(function(){
+        if(!ytPlayer || !ytPlayer.getDuration) return;
+        var duration = ytPlayer.getDuration();
+        var current = ytPlayer.getCurrentTime();
+        if(duration > 0 && (duration - current) <= 15){
+          document.getElementById('endGuard').classList.add('show');
+        } else {
+          document.getElementById('endGuard').classList.remove('show');
+        }
+      }, 1000);
+    } else if(state === 0){ // ended: close before the "up next" screen can be tapped
+      stopEndGuardTimer();
+      if(currentSource === 'gacha'){
+        addExp(50);
+        showIdleToast('🎲 学びボーナス +50 EXP');
+      }
+      document.getElementById('closeBtn').click();
+    }
+  }
+
+  function loadIntoPlayer(id){
+    if(!apiReady || !ytPlayer || !ytPlayer.loadVideoById){ pendingPlay = { id: id }; return; }
+    document.getElementById('videoLoading').classList.add('show');
+    ytPlayer.loadVideoById(id);
+    enforceEcoQuality();
+  }
+
+  var currentSource = 'search';
+  var currentVideoTitle = '';
+
+  function playVideo(id, source, title){
+    currentSource = source;
+    currentVideoTitle = title || '再生中の音声';
+    var isRadio = (source === 'bath' || source === 'sleep');
+    var countsToward = (source === 'search');
+
+    if(countsToward){
+      counter = loadCounter(); // 日付が変わっていたらここで0にリセットされる
+      counter.count += 1;
+      saveCounter(counter);
+      renderCounter();
+    }
+
+    document.getElementById('overlay').classList.add('open');
+    setTimeout(function(){ loadIntoPlayer(id); }, 50);
+    markWatched(id);
+
+    document.getElementById('radioTitle').textContent = currentVideoTitle;
+    document.getElementById('radioPlayPauseBtn').textContent = '⏸';
+    startRadioUpdateLoop();
+
+    var cover = document.getElementById('screenCover');
+    var toggleBtn = document.getElementById('radioToggleBtn');
+    if(isRadio){
+      cover.classList.add('show');
+      toggleBtn.style.display = 'flex';
+    } else {
+      cover.classList.remove('show');
+      toggleBtn.style.display = 'none';
+    }
+  }
+
+  document.getElementById('screenCover').addEventListener('click', function(){
+    this.classList.remove('show');
+  });
+  document.getElementById('radioToggleBtn').addEventListener('click', function(){
+    document.getElementById('screenCover').classList.toggle('show');
+  });
+
+  // ---- ラジオ画面: タイトル・再生時間の表示更新 ----
+  var radioUpdateInterval = null;
+  function formatTime(sec){
+    if(!isFinite(sec) || sec < 0) sec = 0;
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }
+  function startRadioUpdateLoop(){
+    if(radioUpdateInterval){ clearInterval(radioUpdateInterval); }
+    radioUpdateInterval = setInterval(function(){
+      if(!ytPlayer || !ytPlayer.getCurrentTime) return;
+      var cur = ytPlayer.getCurrentTime();
+      var dur = ytPlayer.getDuration();
+      document.getElementById('radioTime').textContent = formatTime(cur) + ' / ' + formatTime(dur);
+    }, 1000);
+  }
+  function stopRadioUpdateLoop(){
+    if(radioUpdateInterval){ clearInterval(radioUpdateInterval); radioUpdateInterval = null; }
+  }
+
+  // ---- ラジオ画面: 再生/一時停止ボタン(タップしても画面カバーは解除しない) ----
+  document.getElementById('radioPlayPauseBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    if(!ytPlayer || !ytPlayer.getPlayerState) return;
+    var state = ytPlayer.getPlayerState();
+    if(state === 1){
+      ytPlayer.pauseVideo();
+      this.textContent = '▶';
+    } else {
+      ytPlayer.playVideo();
+      this.textContent = '⏸';
+    }
+  });
+
+  function currentCooldownSeconds(){
+    return COOLDOWN_STEP * counter.count; // 1本目10s, 2本目20s, 3本目30s ...
+  }
+
+  function startCooldown(){
+    var overlayEl = document.getElementById('cooldownOverlay');
+    var numEl = document.getElementById('cooldownNum');
+    var msgEl = document.getElementById('cooldownMsg');
+    var remaining = currentCooldownSeconds();
+    numEl.textContent = remaining;
+    msgEl.textContent = counter.count + '本目を見ました。少し休憩してから次へ';
+    overlayEl.classList.add('open');
+    var timer = setInterval(function(){
+      remaining -= 1;
+      if(remaining <= 0){
+        clearInterval(timer);
+        overlayEl.classList.remove('open');
+        return;
+      }
+      numEl.textContent = remaining;
+    }, 1000);
+  }
+
+  document.getElementById('closeBtn').addEventListener('click', function(){
+    document.getElementById('overlay').classList.remove('open');
+    markStopped();
+    stopRadioUpdateLoop();
+    setTimeout(function(){
+      if(ytPlayer && ytPlayer.stopVideo){ ytPlayer.stopVideo(); }
+      if(currentSource === 'search'){
+        startCooldown();
+      }
+      // bath / sleep / gacha: クールダウンなし(有益・必要な視聴として扱う)
+    }, 300);
+  });
+
+  document.getElementById('searchBtn').addEventListener('click', doSearch);
+  queryInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ doSearch(); }
+  });
+
+  // ---- channels ----
+  function loadChannels(){
+    try{
+      var raw = localStorage.getItem(CHAN_STORAGE);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e){ return []; }
+  }
+  function saveChannels(list){
+    try{ localStorage.setItem(CHAN_STORAGE, JSON.stringify(list)); pushRemoteState(); } catch(e){}
+  }
+  var channels = loadChannels();
+
+  function renderChannels(){
+    var list = document.getElementById('channelList');
+    list.innerHTML = '';
+    if(channels.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.style.gridColumn = 'auto';
+      empty.textContent = 'まだ登録されていません。';
+      list.appendChild(empty);
+      return;
+    }
+    channels.forEach(function(c, idx){
+      var row = document.createElement('div');
+      row.className = 'chan-row';
+      var a = document.createElement('a');
+      a.href = c.url; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = c.name;
+      var del = document.createElement('button');
+      del.textContent = '削除';
+      del.addEventListener('click', function(){
+        channels.splice(idx, 1);
+        saveChannels(channels);
+        renderChannels();
+      });
+      row.appendChild(a);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('addChannelBtn').addEventListener('click', function(){
+    var errEl = document.getElementById('channelErr');
+    var name = document.getElementById('channelNameInput').value.trim();
+    var url = document.getElementById('channelUrlInput').value.trim();
+    if(!name || !url){
+      errEl.textContent = 'チャンネル名とURLの両方を入力してください';
+      errEl.style.display = 'block';
+      return;
+    }
+    if(!/^https?:\/\//.test(url)){
+      errEl.textContent = 'URLはhttp(s)://から始めてください';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+    channels.push({ name: name, url: url });
+    saveChannels(channels);
+    document.getElementById('channelNameInput').value = '';
+    document.getElementById('channelUrlInput').value = '';
+    renderChannels();
+  });
+
+  renderChannels();
+})();
+</script>
+</body>
+</html>
