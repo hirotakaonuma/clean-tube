@@ -9,44 +9,81 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Shippori+Mincho:wght@500;700&display=swap" rel="stylesheet">
 <title>Clean Tube</title>
 <style>
   :root{
-    --bg: #F0EEE6;
-    --surface: #FAF9F5;
-    --surface-2: #FFFFFF;
-    --border: #E0DDD3;
-    --text: #2A2A26;
-    --text-secondary: #6B685F;
-    --text-muted: #949184;
-    --accent: #C96442;
-    --danger: #C4453D;
-    --radius: 12px;
+    --bg: #E9DEC3;
+    --bg-2: #DCCBA0;
+    --surface: #F6EEDA;
+    --surface-2: #FBF6E8;
+    --border: #C7AE83;
+    --wood: #5C4029;
+    --wood-dark: #3C2A19;
+    --text: #3A2A1A;
+    --text-secondary: #6B5642;
+    --text-muted: #9C8968;
+    --accent: #A9622E;
+    --accent-2: #C98A46;
+    --gold: #B8912E;
+    --danger: #9B4632;
+    --radius: 14px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body{ height:100%; }
   body{
     margin:0;
-    background:var(--bg);
+    position:relative;
+    background:
+      radial-gradient(ellipse at top, rgba(255,250,235,0.55), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
     color:var(--text);
-    font-family:-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    font-family:'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
     -webkit-font-smoothing:antialiased;
     padding: max(12px, env(safe-area-inset-top)) 0 0;
     display:flex; flex-direction:column; min-height:100vh;
   }
+  body::before{
+    content:'';
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      repeating-linear-gradient(0deg, rgba(92,64,41,0.03) 0px, rgba(92,64,41,0.03) 1px, transparent 1px, transparent 3px),
+      repeating-linear-gradient(90deg, rgba(92,64,41,0.02) 0px, rgba(92,64,41,0.02) 1px, transparent 1px, transparent 3px);
+  }
   h1{
-    font-size:15px;
-    font-weight:600;
-    margin:0 0 4px;
-    padding:0 16px;
+    position:relative; z-index:1;
+    font-family:'Shippori Mincho', serif;
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:0.06em;
+    margin:0 0 6px;
+    padding:14px 16px;
     display:flex;
     align-items:center;
     justify-content:space-between;
-    color:var(--text-secondary);
+    color:#F3E6C8;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 6px),
+      linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
   }
-  .gear{ background:none; border:none; color:var(--text-muted); font-size:16px; padding:4px; }
-  .counter{ font-family:'DotGothic16', monospace; font-size:13px; color:var(--text-muted); padding:0 16px 8px; letter-spacing:0.02em; }
+  .gear{ background:none; border:none; color:#E8D9B5; font-size:18px; padding:4px; }
+  .counter{ position:relative; z-index:1; font-family:'DotGothic16', monospace; font-size:13px; color:var(--text-secondary); padding:8px 16px 2px; letter-spacing:0.02em; }
+
+  .wisdom-box{
+    position:relative; z-index:1;
+    margin:8px 16px 14px;
+    padding:13px 16px;
+    background:
+      repeating-linear-gradient(0deg, rgba(120,90,50,0.045) 0px, rgba(120,90,50,0.045) 1px, transparent 1px, transparent 3px),
+      var(--surface);
+    border:1px dashed var(--border);
+    border-radius:10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(60,42,20,0.07);
+    cursor:pointer;
+  }
+  .wisdom-label{ font-family:'DotGothic16', monospace; font-size:10px; color:var(--text-muted); letter-spacing:0.18em; margin-bottom:5px; }
+  .wisdom-text{ font-family:'Shippori Mincho', serif; font-style:italic; font-size:13.5px; line-height:1.75; color:var(--text-secondary); }
 
   .settings{ display:none; margin:0 16px 12px; background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:14px; }
   .settings.open{ display:block; }
@@ -95,8 +132,8 @@
     border-radius:12px; padding:0; overflow:hidden; text-align:left;
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,0.7),
-      0 1px 2px rgba(42,42,38,0.04),
-      0 4px 10px rgba(42,42,38,0.05);
+      0 1px 2px rgba(58,42,26,0.05),
+      0 4px 10px rgba(58,42,26,0.06);
     transition: transform 0.15s ease;
   }
   .result-item:active{ transform:scale(0.98); }
@@ -310,14 +347,51 @@
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
   .screen-cover{
-    position:absolute; inset:0; background:rgba(15,15,15,0.82);
+    position:absolute; inset:0;
+    background: radial-gradient(circle at 50% 38%, rgba(92,64,41,0.88), rgba(20,14,8,0.95));
     backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
     z-index:999;
     display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px;
-    cursor:pointer;
+    cursor:pointer; padding:24px;
   }
   .screen-cover.show{ display:flex; }
-  .screen-cover .note{ color:rgba(255,255,255,0.6); font-size:13px; text-align:center; padding:0 32px; }
+  .screen-cover .note{ color:rgba(243,230,200,0.45); font-size:11px; text-align:center; padding:0 32px; margin-top:2px; }
+
+  .radio-dial{
+    position:relative; width:110px; height:110px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #8a6038, #3C2A19 72%);
+    border:4px solid var(--gold);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.35), 0 10px 26px rgba(0,0,0,0.5), inset 0 2px 6px rgba(255,255,255,0.15);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .radio-dial-glow{
+    width:60px; height:60px; border-radius:50%;
+    background: radial-gradient(circle, rgba(255,205,130,0.95), rgba(255,150,60,0.08) 70%);
+    animation: radioGlow 2.6s ease-in-out infinite;
+  }
+  @keyframes radioGlow{
+    0%,100%{ opacity:0.5; transform:scale(0.9); }
+    50%{ opacity:1; transform:scale(1.08); }
+  }
+  .radio-title{
+    font-family:'Shippori Mincho', serif; color:#F3E6C8; font-size:15px; text-align:center;
+    max-width:280px; line-height:1.6;
+    overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  }
+  .radio-time{ font-family:'DotGothic16', monospace; color:rgba(243,230,200,0.75); font-size:13px; letter-spacing:0.05em; }
+  .radio-ctrl-btn{
+    width:54px; height:54px; border-radius:50%;
+    background:rgba(184,145,46,0.22); border:1.5px solid rgba(243,230,200,0.5);
+    color:#F3E6C8; font-size:20px;
+  }
+  .sleep-timer-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center; margin-top:4px; }
+  .sleep-timer-row .sleep-timer-label{ font-size:11px; color:rgba(243,230,200,0.6); width:100%; text-align:center; }
+  .sleep-timer-row button{
+    background:rgba(255,255,255,0.08); border:1px solid rgba(243,230,200,0.35); color:#F3E6C8;
+    font-size:12px; padding:6px 12px; border-radius:999px;
+  }
+  .sleep-timer-row button.active{ background:var(--gold); color:#3C2A19; border-color:var(--gold); font-weight:700; }
+  .sleep-timer-status{ font-family:'DotGothic16', monospace; font-size:12px; color:rgba(243,230,200,0.75); min-height:16px; }
 
   .cooldown-overlay{
     position:fixed; inset:0; background:var(--bg); z-index:900;
@@ -346,6 +420,10 @@
 
   <h1>Clean Tube <button class="gear" id="settingsBtn" aria-label="設定">⚙</button></h1>
   <div class="counter" id="dailyCounter"></div>
+  <div class="wisdom-box" id="wisdomBox">
+    <div class="wisdom-label" id="wisdomLabel">今日の知恵</div>
+    <div class="wisdom-text" id="wisdomText">静けさに耐えられる心は、集中できる心と同じものである。</div>
+  </div>
 
   <div class="settings" id="settingsCard">
     <div class="label">他の端末と同期する(Firebase Realtime Database URL)</div>
@@ -445,6 +523,20 @@
     <div class="end-guard" id="endGuard"></div>
     <div class="video-loading" id="videoLoading"><div class="ring"></div></div>
     <div class="screen-cover" id="screenCover">
+      <div class="radio-dial">
+        <div class="radio-dial-glow"></div>
+      </div>
+      <div class="radio-title" id="radioTitle">再生中の音声</div>
+      <div class="radio-time" id="radioTime">00:00 / 00:00</div>
+      <button class="radio-ctrl-btn" id="radioPlayPauseBtn">⏸</button>
+      <div class="sleep-timer-row" id="sleepTimerRow">
+        <span class="sleep-timer-label">🌙 スリープタイマー</span>
+        <button data-min="15">15分</button>
+        <button data-min="30">30分</button>
+        <button data-min="60">60分</button>
+        <button data-min="0" class="off">オフ</button>
+      </div>
+      <div class="sleep-timer-status" id="sleepTimerStatus"></div>
       <div class="note">画面を見えにくくしています(タップで解除)</div>
     </div>
   </div>
@@ -619,6 +711,46 @@
       '今日の検索視聴: ' + counter.count + ' / 目標' + dailyGoal + '回';
   }
   renderCounter();
+
+  // ---- 今日の知恵(名著・哲学・心理学のエッセンスを一行で) ----
+  var WISDOM_QUOTES = [
+    { text:'退屈は、何も起きていないのではない。心が何かを欲しがっている合図だ。', tag:'心理学' },
+    { text:'刺激を求める心を止める方法は、ただ立ち止まることだけだ。', tag:'哲学' },
+    { text:'時間を制する者は、人生を制する。', tag:'処世訓' },
+    { text:'何も足さない時間の中でこそ、本当の自分に出会える。', tag:'禅語' },
+    { text:'習慣とは、日々の小さな選択が積み重なった影である。', tag:'哲学' },
+    { text:'退屈に耐えられる心は、集中できる心と同じものである。', tag:'心理学' },
+    { text:'満たされない気持ちは、埋めるのではなく眺めるとよい。', tag:'禅語' },
+    { text:'今この瞬間だけが、あなたが本当に生きている時間である。', tag:'哲学' },
+    { text:'怠惰とは休むことではなく、目的を見失うことだ。', tag:'処世訓' },
+    { text:'画面の中に答えはない。答えは、画面を閉じた後の時間にある。', tag:'心理学' },
+    { text:'小さな我慢の積み重ねが、大きな自由をつくる。', tag:'処世訓' },
+    { text:'本当の豊かさは、何を持つかではなく、何を手放せるかで決まる。', tag:'哲学' },
+    { text:'静けさに耐えられない心は、まだ何かに支配されている。', tag:'禅語' },
+    { text:'人は、退屈と向き合う力を失った分だけ、自由を失う。', tag:'心理学' },
+    { text:'今日は何を"見た"かではなく、何を"考えた"かを思い出せるように。', tag:'処世訓' },
+    { text:'急いでいる時ほど、遠回りに見える道を選んでみるとよい。', tag:'哲学' },
+    { text:'心を鍛えるとは、刺激を減らす勇気を持つことでもある。', tag:'心理学' },
+    { text:'一期一会。この時間は、二度と戻らない。', tag:'禅語' }
+  ];
+  var lastWisdomIdx = -1;
+  function renderWisdom(idx){
+    var q = WISDOM_QUOTES[idx];
+    document.getElementById('wisdomLabel').textContent = '今日の知恵 ― ' + q.tag;
+    document.getElementById('wisdomText').textContent = q.text;
+    lastWisdomIdx = idx;
+  }
+  function dayOfYear(){
+    var now = new Date();
+    var start = new Date(now.getFullYear(), 0, 0);
+    return Math.floor((now - start) / 86400000);
+  }
+  renderWisdom(dayOfYear() % WISDOM_QUOTES.length); // 「今日の一言」として日替わりで固定表示
+  document.getElementById('wisdomBox').addEventListener('click', function(){
+    var next;
+    do{ next = Math.floor(Math.random() * WISDOM_QUOTES.length); } while(next === lastWisdomIdx && WISDOM_QUOTES.length > 1);
+    renderWisdom(next); // タップでその場でシャッフルも可能
+  });
 
   // ---- デジタルデトックスEXP / レベル ----
   var EXP_STORAGE = 'clean-tube-total-exp';
@@ -812,7 +944,7 @@
       });
       var topN = items.slice(0, Math.min(10, items.length));
       var chosen = topN[Math.floor(Math.random() * topN.length)];
-      playVideo(chosen.id, 'gacha');
+      playVideo(chosen.id, 'gacha', chosen.snippet.title);
     } catch(e){
       spinner.style.display = 'none';
       errEl.textContent = e.message || '通信エラーが発生しました';
@@ -950,7 +1082,7 @@
             '<div class="title">' + escapeHtml(snippet.title) + '</div>' +
             '<div class="channel">' + escapeHtml(snippet.channelTitle) + '</div>' +
           '</div>';
-        el.addEventListener('click', function(){ playVideo(item.id, 'search'); });
+        el.addEventListener('click', function(){ playVideo(item.id, 'search', snippet.title); });
         container.appendChild(el);
       });
     } catch(e){
@@ -986,7 +1118,7 @@
         return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
       });
       items = filterUnwatched(items);
-      playVideo(items[0].id, source);
+      playVideo(items[0].id, source, items[0].snippet.title);
     } catch(e){
       spinner.style.display = 'none';
       errEl.textContent = e.message || '通信エラーが発生しました';
@@ -1023,11 +1155,19 @@
         },
         onStateChange: function(e){
           if(e.data !== -1){ document.getElementById('videoLoading').classList.remove('show'); }
+          enforceEcoQuality();
           handlePlayerStateChange(e.data);
         }
       }
     });
   };
+
+  // ---- 音声エコモード: 通信量節約のため常に最低画質(音声中心)で再生する ----
+  function enforceEcoQuality(){
+    if(ytPlayer && ytPlayer.setPlaybackQuality){
+      try{ ytPlayer.setPlaybackQuality('tiny'); } catch(e){}
+    }
+  }
 
   var endGuardInterval = null;
 
@@ -1064,12 +1204,15 @@
     if(!apiReady || !ytPlayer || !ytPlayer.loadVideoById){ pendingPlay = { id: id }; return; }
     document.getElementById('videoLoading').classList.add('show');
     ytPlayer.loadVideoById(id);
+    enforceEcoQuality();
   }
 
   var currentSource = 'search';
+  var currentVideoTitle = '';
 
-  function playVideo(id, source){
+  function playVideo(id, source, title){
     currentSource = source;
+    currentVideoTitle = title || '再生中の音声';
     var isRadio = (source === 'bath' || source === 'sleep');
     var countsToward = (source === 'search');
 
@@ -1083,6 +1226,11 @@
     document.getElementById('overlay').classList.add('open');
     setTimeout(function(){ loadIntoPlayer(id); }, 50);
     markWatched(id);
+
+    document.getElementById('radioTitle').textContent = currentVideoTitle;
+    document.getElementById('radioPlayPauseBtn').textContent = '⏸';
+    clearSleepTimer();
+    startRadioUpdateLoop();
 
     var cover = document.getElementById('screenCover');
     var toggleBtn = document.getElementById('radioToggleBtn');
@@ -1100,6 +1248,77 @@
   });
   document.getElementById('radioToggleBtn').addEventListener('click', function(){
     document.getElementById('screenCover').classList.toggle('show');
+  });
+
+  // ---- ラジオ画面: タイトル・再生時間の表示更新 ----
+  var radioUpdateInterval = null;
+  function formatTime(sec){
+    if(!isFinite(sec) || sec < 0) sec = 0;
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }
+  function startRadioUpdateLoop(){
+    if(radioUpdateInterval){ clearInterval(radioUpdateInterval); }
+    radioUpdateInterval = setInterval(function(){
+      if(!ytPlayer || !ytPlayer.getCurrentTime) return;
+      var cur = ytPlayer.getCurrentTime();
+      var dur = ytPlayer.getDuration();
+      document.getElementById('radioTime').textContent = formatTime(cur) + ' / ' + formatTime(dur);
+    }, 1000);
+  }
+  function stopRadioUpdateLoop(){
+    if(radioUpdateInterval){ clearInterval(radioUpdateInterval); radioUpdateInterval = null; }
+  }
+
+  // ---- ラジオ画面: 再生/一時停止ボタン(タップしても画面カバーは解除しない) ----
+  document.getElementById('radioPlayPauseBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    if(!ytPlayer || !ytPlayer.getPlayerState) return;
+    var state = ytPlayer.getPlayerState();
+    if(state === 1){
+      ytPlayer.pauseVideo();
+      this.textContent = '▶';
+    } else {
+      ytPlayer.playVideo();
+      this.textContent = '⏸';
+    }
+  });
+
+  // ---- ラジオ画面: スリープタイマー(就寝時の自動停止) ----
+  var sleepTimerTimeout = null;
+  var sleepTimerCountdownInterval = null;
+  function clearSleepTimer(){
+    if(sleepTimerTimeout){ clearTimeout(sleepTimerTimeout); sleepTimerTimeout = null; }
+    if(sleepTimerCountdownInterval){ clearInterval(sleepTimerCountdownInterval); sleepTimerCountdownInterval = null; }
+    document.getElementById('sleepTimerStatus').textContent = '';
+    Array.prototype.forEach.call(document.querySelectorAll('#sleepTimerRow button'), function(b){
+      b.classList.remove('active');
+    });
+  }
+  document.querySelectorAll('#sleepTimerRow button').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      clearSleepTimer();
+      var minutes = parseInt(this.getAttribute('data-min'), 10);
+      if(!minutes){ return; } // 「オフ」
+      this.classList.add('active');
+      var endAt = Date.now() + minutes * 60000;
+      sleepTimerTimeout = setTimeout(function(){
+        if(ytPlayer && ytPlayer.pauseVideo){ ytPlayer.pauseVideo(); }
+        document.getElementById('closeBtn').click();
+      }, minutes * 60000);
+      sleepTimerCountdownInterval = setInterval(function(){
+        var remainingMs = endAt - Date.now();
+        if(remainingMs <= 0){
+          document.getElementById('sleepTimerStatus').textContent = '';
+          clearInterval(sleepTimerCountdownInterval);
+          return;
+        }
+        var remainingMin = Math.ceil(remainingMs / 60000);
+        document.getElementById('sleepTimerStatus').textContent = '🌙 あと約' + remainingMin + '分で自動的に休止します';
+      }, 1000);
+    });
   });
 
   
@@ -1130,6 +1349,8 @@
   document.getElementById('closeBtn').addEventListener('click', function(){
     document.getElementById('overlay').classList.remove('open');
     markStopped();
+    stopRadioUpdateLoop();
+    clearSleepTimer();
     setTimeout(function(){
       if(ytPlayer && ytPlayer.stopVideo){ ytPlayer.stopVideo(); }
       if(currentSource === 'search'){
