@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Clean Tube">
+<link rel="apple-touch-icon" href="icon.png">
 <title>Clean Tube</title>
 <style>
   :root{
@@ -74,7 +75,7 @@
   .err{ font-size:12px; color:var(--danger); margin:0 16px 8px; display:none; }
   .spinner{ font-size:12px; color:var(--text-muted); padding:4px 16px; display:none; }
 
-  main{ flex:1; display:flex; flex-direction:column; padding: 4px 16px 8px; min-height:0; }
+  main{ flex:1; display:flex; flex-direction:column; padding: 4px 16px 150px; min-height:0; }
 
   .grid{
     display:grid;
@@ -97,34 +98,40 @@
   .result-item .channel{ font-size:10px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .empty{ font-size:13px; color:var(--text-muted); grid-column:1/-1; }
 
-  .quick-tags{ display:flex; gap:10px; flex-wrap:wrap; padding:2px 0 14px; }
-  .quick-tags button{
-    background:var(--surface-2); border:0.5px solid var(--border); color:var(--text);
-    border-radius:999px; padding:13px 20px; font-size:16px; font-weight:600;
-  }
-
-  @media (min-width: 700px){
-    .grid{ grid-template-columns: repeat(4, 1fr); gap:12px; }
-    .result-item .title{ font-size:13px; }
-    main{ max-width:900px; margin:0 auto; width:100%; }
-    .searchbar{ max-width:900px; left:50%; right:auto; transform:translateX(-50%); }
-    .searchbar.centered{ transform:translate(-50%, -50%); }
-  }
-
-  .searchbar{
+  .bottom-dock{
     position:fixed;
-    left:16px; right:16px; bottom:calc(14px + env(safe-area-inset-bottom));
+    left:0; right:0; bottom:0;
+    z-index:10;
+    padding: 0 0 calc(10px + env(safe-area-inset-bottom));
+    transition: top 0.2s ease, bottom 0.2s ease, transform 0.2s ease;
+  }
+  .bottom-dock.centered{
+    top:38%; bottom:auto; transform:translateY(-50%);
+  }
+  .quick-tags{
+    display:flex; gap:10px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    padding: 0 16px 10px; scrollbar-width:none;
+  }
+  .quick-tags::-webkit-scrollbar{ display:none; }
+  .quick-tags button{
+    flex:0 0 auto;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    border-radius:999px; padding:14px 22px; font-size:16px; font-weight:700;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    letter-spacing:0.01em;
+  }
+  .quick-tags button.gacha{
+    background: linear-gradient(135deg, var(--accent), #a8502f);
+    color:#fff; border:none;
+    box-shadow: 0 3px 10px rgba(201,100,66,0.35);
+  }
+  .searchbar{
     background:var(--surface);
     border:0.5px solid var(--border);
     border-radius:16px;
     padding: 10px 10px;
+    margin: 0 16px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-    transition: top 0.2s ease, bottom 0.2s ease, transform 0.2s ease;
-    z-index:10;
-  }
-  .searchbar.centered{
-    top:38%; bottom:auto; transform:translateY(-50%);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
   }
   .searchbar .row{ gap:8px; }
   .searchbar input{ font-size:16px; padding:12px 14px; border-radius:12px; }
@@ -154,18 +161,26 @@
   }
   .overlay iframe{ width:100%; height:100%; border:0; }
   #player{ width:100%; height:100%; }
-  .skip-controls{
-    position:absolute; bottom:max(70px, calc(70px + env(safe-area-inset-bottom)));
-    left:0; right:0; display:flex; justify-content:center; gap:28px; z-index:1001;
-    pointer-events:none;
+  .video-loading{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    z-index:1001; pointer-events:none;
   }
-  .skip-controls button{
-    pointer-events:auto;
-    background:rgba(0,0,0,0.55); color:#fff; border:none;
-    width:56px; height:56px; border-radius:28px; font-size:18px; font-weight:600;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  .video-loading.show{ display:flex; }
+  .video-loading .ring{
+    width:40px; height:40px; border-radius:50%;
+    border:3px solid rgba(255,255,255,0.25); border-top-color:#fff;
+    animation: spin 0.8s linear infinite;
   }
-  .skip-controls button span{ font-size:10px; font-weight:500; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .screen-cover{
+    position:absolute; inset:0; background:rgba(15,15,15,0.82);
+    backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+    z-index:999;
+    display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px;
+    cursor:pointer;
+  }
+  .screen-cover.show{ display:flex; }
+  .screen-cover .note{ color:rgba(255,255,255,0.6); font-size:13px; text-align:center; padding:0 32px; }
 
   .cooldown-overlay{
     position:fixed; inset:0; background:var(--bg); z-index:900;
@@ -185,8 +200,8 @@
 
   @media (min-width: 640px){
     body{ max-width:480px; margin:0 auto; border-left:0.5px solid var(--border); border-right:0.5px solid var(--border); }
-    .searchbar{ max-width:448px; left:50%; right:auto; transform:translateX(-50%); }
-    .searchbar.centered{ transform:translate(-50%, -50%); }
+    .bottom-dock{ max-width:480px; left:50%; right:auto; transform:translateX(-50%); }
+    .bottom-dock.centered{ transform:translate(-50%, -50%); }
   }
 </style>
 </head>
@@ -211,6 +226,11 @@
       <input type="text" id="sleepQueryInput" placeholder="例: 睡眠 雑学">
       <button id="saveSleepBtn">保存</button>
     </div>
+    <div class="label">🎲 ガチャの候補(カンマ区切り)</div>
+    <div class="row" style="margin-bottom:14px;">
+      <input type="text" id="gachaQueryInput" placeholder="例: TED,ゆる言語学ラジオ,教養,ドキュメンタリー">
+      <button id="saveGachaBtn">保存</button>
+    </div>
     <div class="label">クイックタグ(カンマ区切り)</div>
     <div class="row" style="margin-bottom:14px;">
       <input type="text" id="quickTagsInput" placeholder="例: 癒し,AI,投資">
@@ -230,27 +250,30 @@
   <div class="spinner" id="spinner">検索中…</div>
 
   <main>
-    <div class="quick-tags" id="quickTags"></div>
     <div class="grid" id="results">
       <div class="empty">検索すると、ここに8件表示されます(10分未満の動画は除外)。</div>
     </div>
   </main>
 
-  <div class="searchbar" id="searchbar">
-    <div class="row">
-      <button class="bath-btn" id="bathBtn" aria-label="お風呂用の動画を自動再生">♨</button>
-      <button class="bath-btn" id="sleepBtn" aria-label="睡眠用の動画を自動再生">💤</button>
-      <input type="text" id="queryInput" placeholder="見たい動画・トピックを検索">
-      <button class="primary" id="searchBtn">検索</button>
+  <div class="bottom-dock" id="bottomDock">
+    <div class="quick-tags" id="quickTags"></div>
+    <div class="searchbar">
+      <div class="row">
+        <button class="bath-btn" id="bathBtn" aria-label="お風呂用の動画を自動再生">♨</button>
+        <button class="bath-btn" id="sleepBtn" aria-label="睡眠用の動画を自動再生">💤</button>
+        <input type="text" id="queryInput" placeholder="見たい動画・トピックを検索">
+        <button class="primary" id="searchBtn">検索</button>
+      </div>
     </div>
   </div>
 
   <div class="overlay" id="overlay">
     <button class="close" id="closeBtn" aria-label="閉じる">✕</button>
+    <button class="close" id="radioToggleBtn" style="left:16px; right:auto; display:none;" aria-label="見えにくさを切り替え">👁</button>
     <div id="player"></div>
-    <div class="skip-controls">
-      <button id="skipBack" aria-label="10秒戻す">⏪<span>10秒</span></button>
-      <button id="skipFwd" aria-label="10秒送る">⏩<span>10秒</span></button>
+    <div class="video-loading" id="videoLoading"><div class="ring"></div></div>
+    <div class="screen-cover" id="screenCover">
+      <div class="note">画面を見えにくくしています(タップで解除)</div>
     </div>
   </div>
 
@@ -349,14 +372,75 @@
     }
   });
 
+  // ---- gacha query list ----
+  var GACHA_QUERY_STORAGE = 'clean-tube-gacha-queries';
+  var gachaQueries = (localStorage.getItem(GACHA_QUERY_STORAGE) || 'TED,ゆる言語学ラジオ,教養,ドキュメンタリー')
+    .split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  document.getElementById('gachaQueryInput').value = gachaQueries.join(',');
+  document.getElementById('saveGachaBtn').addEventListener('click', function(){
+    var v = document.getElementById('gachaQueryInput').value.trim();
+    if(v){
+      gachaQueries = v.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+      localStorage.setItem(GACHA_QUERY_STORAGE, gachaQueries.join(','));
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  async function gachaPlay(){
+    var errEl = document.getElementById('queryErr');
+    errEl.style.display = 'none';
+
+    if(!apiKey){
+      errEl.textContent = '先に⚙からAPIキーを保存してください';
+      errEl.style.display = 'block';
+      document.getElementById('settingsCard').classList.add('open');
+      return;
+    }
+    if(gachaQueries.length === 0){ return; }
+
+    var pickedQuery = gachaQueries[Math.floor(Math.random() * gachaQueries.length)];
+    var spinner = document.getElementById('spinner');
+    spinner.style.display = 'block';
+    try{
+      var items = await fetchVideos(pickedQuery, 25);
+      items = items.filter(function(item){
+        return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
+      });
+      items = filterUnwatched(items);
+      spinner.style.display = 'none';
+      if(items.length === 0){
+        errEl.textContent = '「' + pickedQuery + '」で動画が見つかりませんでした';
+        errEl.style.display = 'block';
+        return;
+      }
+      items.sort(function(a, b){
+        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
+      });
+      var topN = items.slice(0, Math.min(10, items.length));
+      var chosen = topN[Math.floor(Math.random() * topN.length)];
+      playVideo(chosen.id, false);
+    } catch(e){
+      spinner.style.display = 'none';
+      errEl.textContent = e.message || '通信エラーが発生しました';
+      errEl.style.display = 'block';
+    }
+  }
+
   // ---- quick tags ----
   var QUICK_TAGS_STORAGE = 'clean-tube-quick-tags';
-  var quickTags = (localStorage.getItem(QUICK_TAGS_STORAGE) || '癒し,AI,投資').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  var quickTags = (localStorage.getItem(QUICK_TAGS_STORAGE) || '動物犬猫癒し,AI勉強,投資勉強').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
   document.getElementById('quickTagsInput').value = quickTags.join(',');
 
   function renderQuickTags(){
     var wrap = document.getElementById('quickTags');
     wrap.innerHTML = '';
+
+    var gachaBtn = document.createElement('button');
+    gachaBtn.className = 'gacha';
+    gachaBtn.textContent = '🎲 おまかせ';
+    gachaBtn.addEventListener('click', gachaPlay);
+    wrap.appendChild(gachaBtn);
+
     quickTags.forEach(function(tag){
       var btn = document.createElement('button');
       btn.textContent = tag;
@@ -381,14 +465,14 @@
 
   // ---- search bar reposition on focus ----
   var queryInput = document.getElementById('queryInput');
-  var searchbar = document.getElementById('searchbar');
+  var bottomDock = document.getElementById('bottomDock');
   var blurTimer = null;
   queryInput.addEventListener('focus', function(){
     if(blurTimer){ clearTimeout(blurTimer); blurTimer = null; }
-    searchbar.classList.add('centered');
+    bottomDock.classList.add('centered');
   });
   queryInput.addEventListener('blur', function(){
-    blurTimer = setTimeout(function(){ searchbar.classList.remove('centered'); }, 150);
+    blurTimer = setTimeout(function(){ bottomDock.classList.remove('centered'); }, 150);
   });
 
   // ---- helpers ----
@@ -435,248 +519,4 @@
     if(!apiKey){
       errEl.textContent = '先に⚙からAPIキーを保存してください';
       errEl.style.display = 'block';
-      document.getElementById('settingsCard').classList.add('open');
-      return;
-    }
-    if(!q){
-      errEl.textContent = 'キーワードを入力してください';
-      errEl.style.display = 'block';
-      return;
-    }
-
-    var spinner = document.getElementById('spinner');
-    spinner.style.display = 'block';
-
-    try{
-      var items = await fetchVideos(q, 25);
-      spinner.style.display = 'none';
-
-      items = items.filter(function(item){
-        return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
-      });
-      items = filterUnwatched(items);
-      items.sort(function(a, b){
-        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
-      });
-      items = items.slice(0, RESULT_COUNT);
-
-      if(items.length === 0){
-        errEl.textContent = '10分以上の動画が見つかりませんでした';
-        errEl.style.display = 'block';
-        return;
-      }
-
-      var container = document.getElementById('results');
-      items.forEach(function(item){
-        var snippet = item.snippet;
-        var thumb = (snippet.thumbnails.medium || snippet.thumbnails.default).url;
-        var el = document.createElement('button');
-        el.className = 'result-item';
-        el.innerHTML =
-          '<img src="' + thumb + '" alt="">' +
-          '<div class="meta">' +
-            '<div class="title">' + escapeHtml(snippet.title) + '</div>' +
-            '<div class="channel">' + escapeHtml(snippet.channelTitle) + '</div>' +
-          '</div>';
-        el.addEventListener('click', function(){ playVideo(item.id, false); });
-        container.appendChild(el);
-      });
-    } catch(e){
-      spinner.style.display = 'none';
-      errEl.textContent = e.message || '通信エラーが発生しました';
-      errEl.style.display = 'block';
-    }
-  }
-
-  // ---- ♨️ / 💤: auto-play top unwatched result for a preset query, no cooldown ----
-  async function specialAutoPlay(query){
-    var errEl = document.getElementById('queryErr');
-    errEl.style.display = 'none';
-
-    if(!apiKey){
-      errEl.textContent = '先に⚙からAPIキーを保存してください';
-      errEl.style.display = 'block';
-      document.getElementById('settingsCard').classList.add('open');
-      return;
-    }
-
-    var spinner = document.getElementById('spinner');
-    spinner.style.display = 'block';
-    try{
-      var items = await fetchVideos(query, 15);
-      spinner.style.display = 'none';
-      if(items.length === 0){
-        errEl.textContent = '動画が見つかりませんでした';
-        errEl.style.display = 'block';
-        return;
-      }
-      items.sort(function(a, b){
-        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
-      });
-      items = filterUnwatched(items);
-      playVideo(items[0].id, true);
-    } catch(e){
-      spinner.style.display = 'none';
-      errEl.textContent = e.message || '通信エラーが発生しました';
-      errEl.style.display = 'block';
-    }
-  }
-
-  document.getElementById('bathBtn').addEventListener('click', function(){ specialAutoPlay(bathQuery); });
-  document.getElementById('sleepBtn').addEventListener('click', function(){ specialAutoPlay(sleepQuery); });
-
-  var ytPlayer = null;
-  var apiReady = false;
-  var pendingPlay = null;
-
-  window.onYouTubeIframeAPIReady = function(){
-    apiReady = true;
-    if(pendingPlay){
-      var p = pendingPlay; pendingPlay = null;
-      loadIntoPlayer(p.id);
-    }
-  };
-
-  function loadIntoPlayer(id){
-    if(!apiReady){ pendingPlay = { id: id }; return; }
-    if(ytPlayer && ytPlayer.loadVideoById){
-      ytPlayer.loadVideoById(id);
-    } else {
-      ytPlayer = new YT.Player('player', {
-        videoId: id,
-        host: 'https://www.youtube-nocookie.com',
-        playerVars: { autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1 }
-      });
-    }
-  }
-
-  function playVideo(id, isBath){
-    bathModeActive = !!isBath;
-    document.getElementById('overlay').classList.add('open');
-    setTimeout(function(){ loadIntoPlayer(id); }, 50);
-    markWatched(id);
-    counter.count += 1;
-    saveCounter(counter);
-    renderCounter();
-  }
-
-  document.getElementById('skipBack').addEventListener('click', function(){
-    if(ytPlayer && ytPlayer.getCurrentTime){
-      ytPlayer.seekTo(Math.max(0, ytPlayer.getCurrentTime() - 10), true);
-    }
-  });
-  document.getElementById('skipFwd').addEventListener('click', function(){
-    if(ytPlayer && ytPlayer.getCurrentTime){
-      ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10, true);
-    }
-  });
-
-  function currentCooldownSeconds(){
-    return COOLDOWN_STEP * counter.count; // 1本目10s, 2本目20s, 3本目30s ...
-  }
-
-  function startCooldown(){
-    var overlayEl = document.getElementById('cooldownOverlay');
-    var numEl = document.getElementById('cooldownNum');
-    var msgEl = document.getElementById('cooldownMsg');
-    var remaining = currentCooldownSeconds();
-    numEl.textContent = remaining;
-    msgEl.textContent = counter.count + '本目を見ました。少し休憩してから次へ';
-    overlayEl.classList.add('open');
-    var timer = setInterval(function(){
-      remaining -= 1;
-      if(remaining <= 0){
-        clearInterval(timer);
-        overlayEl.classList.remove('open');
-        return;
-      }
-      numEl.textContent = remaining;
-    }, 1000);
-  }
-
-  document.getElementById('closeBtn').addEventListener('click', function(){
-    document.getElementById('overlay').classList.remove('open');
-    setTimeout(function(){
-      if(ytPlayer && ytPlayer.stopVideo){ ytPlayer.stopVideo(); }
-      if(bathModeActive){
-        bathModeActive = false; // お風呂/睡眠再生はクールダウンなし
-      } else {
-        startCooldown();
-      }
-    }, 300);
-  });
-
-  document.getElementById('searchBtn').addEventListener('click', doSearch);
-  queryInput.addEventListener('keydown', function(e){
-    if(e.key === 'Enter'){ doSearch(); }
-  });
-
-  // ---- channels ----
-  function loadChannels(){
-    try{
-      var raw = localStorage.getItem(CHAN_STORAGE);
-      return raw ? JSON.parse(raw) : [];
-    } catch(e){ return []; }
-  }
-  function saveChannels(list){
-    try{ localStorage.setItem(CHAN_STORAGE, JSON.stringify(list)); } catch(e){}
-  }
-  var channels = loadChannels();
-
-  function renderChannels(){
-    var list = document.getElementById('channelList');
-    list.innerHTML = '';
-    if(channels.length === 0){
-      var empty = document.createElement('div');
-      empty.className = 'empty';
-      empty.style.gridColumn = 'auto';
-      empty.textContent = 'まだ登録されていません。';
-      list.appendChild(empty);
-      return;
-    }
-    channels.forEach(function(c, idx){
-      var row = document.createElement('div');
-      row.className = 'chan-row';
-      var a = document.createElement('a');
-      a.href = c.url; a.target = '_blank'; a.rel = 'noopener';
-      a.textContent = c.name;
-      var del = document.createElement('button');
-      del.textContent = '削除';
-      del.addEventListener('click', function(){
-        channels.splice(idx, 1);
-        saveChannels(channels);
-        renderChannels();
-      });
-      row.appendChild(a);
-      row.appendChild(del);
-      list.appendChild(row);
-    });
-  }
-
-  document.getElementById('addChannelBtn').addEventListener('click', function(){
-    var errEl = document.getElementById('channelErr');
-    var name = document.getElementById('channelNameInput').value.trim();
-    var url = document.getElementById('channelUrlInput').value.trim();
-    if(!name || !url){
-      errEl.textContent = 'チャンネル名とURLの両方を入力してください';
-      errEl.style.display = 'block';
-      return;
-    }
-    if(!/^https?:\/\//.test(url)){
-      errEl.textContent = 'URLはhttp(s)://から始めてください';
-      errEl.style.display = 'block';
-      return;
-    }
-    errEl.style.display = 'none';
-    channels.push({ name: name, url: url });
-    saveChannels(channels);
-    document.getElementById('channelNameInput').value = '';
-    document.getElementById('channelUrlInput').value = '';
-    renderChannels();
-  });
-
-  renderChannels();
-})();
-</script>
-</body>
-</html>
+      document.getElementById('
