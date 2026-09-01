@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Clean Tube">
 <link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <title>Clean Tube</title>
 <style>
   :root{
@@ -43,7 +46,7 @@
     color:var(--text-secondary);
   }
   .gear{ background:none; border:none; color:var(--text-muted); font-size:16px; padding:4px; }
-  .counter{ font-size:12px; color:var(--text-muted); padding:0 16px 8px; }
+  .counter{ font-family:'DotGothic16', monospace; font-size:13px; color:var(--text-muted); padding:0 16px 8px; letter-spacing:0.02em; }
 
   .settings{ display:none; margin:0 16px 12px; background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:14px; }
   .settings.open{ display:block; }
@@ -86,9 +89,17 @@
   }
   .result-item{
     display:flex; flex-direction:column;
-    cursor:pointer; background:var(--surface); border:0.5px solid var(--border);
-    border-radius:10px; padding:0; overflow:hidden; text-align:left;
+    cursor:pointer;
+    background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+    border:0.5px solid var(--border);
+    border-radius:12px; padding:0; overflow:hidden; text-align:left;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.7),
+      0 1px 2px rgba(42,42,38,0.04),
+      0 4px 10px rgba(42,42,38,0.05);
+    transition: transform 0.15s ease;
   }
+  .result-item:active{ transform:scale(0.98); }
   .result-item img{ width:100%; aspect-ratio:16/10; object-fit:cover; display:block; }
   .result-item .meta{ padding:6px 8px 8px; }
   .result-item .title{
@@ -102,10 +113,13 @@
     position:relative;
     background: linear-gradient(135deg, #C96442 0%, #D97B4F 45%, #E0A672 100%);
     border-radius:24px;
-    padding:32px 20px 26px;
+    padding:34px 20px 28px;
     margin: 14px 0 20px;
-    display:flex; flex-direction:column; align-items:center; gap:16px;
-    box-shadow: 0 10px 28px rgba(201,100,66,0.28);
+    display:flex; flex-direction:column; align-items:center; gap:18px;
+    box-shadow:
+      0 10px 28px rgba(201,100,66,0.28),
+      inset 0 1px 0 rgba(255,255,255,0.35),
+      inset 0 -18px 30px rgba(0,0,0,0.10);
     overflow:hidden;
   }
   .exp-panel::before{
@@ -126,8 +140,8 @@
     position:absolute; inset:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:2px;
   }
-  .exp-level{ font-size:28px; font-weight:800; color:#fff; letter-spacing:0.02em; text-shadow:0 1px 4px rgba(0,0,0,0.15); }
-  .exp-sub{ font-size:12px; color:rgba(255,255,255,0.9); font-weight:600; }
+  .exp-level{ font-family:'DotGothic16', monospace; font-size:30px; font-weight:400; color:#fff; letter-spacing:0.04em; text-shadow:0 1px 4px rgba(0,0,0,0.15); }
+  .exp-sub{ font-family:'DotGothic16', monospace; font-size:13px; color:rgba(255,255,255,0.9); font-weight:400; letter-spacing:0.02em; }
   .stamp-row{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; min-height:22px; position:relative; z-index:1; }
   .stamp-row .stamp-icon{ font-size:18px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
   .stamp-row .stamp-hint{ font-size:11px; color:rgba(255,255,255,0.85); }
@@ -135,46 +149,50 @@
   .story-window{
     position:relative; z-index:1;
     width:100%;
-    display:flex; align-items:center; gap:10px;
-    margin-top:2px;
-    padding:10px 12px;
-    background:
-      repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px),
-      rgba(20,14,10,0.42);
-    border-radius:8px;
-    border:2px solid rgba(255,255,255,0.55);
+    display:flex; align-items:center; gap:12px;
+    margin-top:6px;
+    padding:12px 14px;
+    background: rgba(18,20,28,0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border:1.5px solid rgba(255,255,255,0.4);
+    border-radius:10px;
     box-shadow:
-      inset 0 0 0 2px rgba(0,0,0,0.18),
-      2px 2px 0 rgba(0,0,0,0.12);
+      inset 0 1px 0 rgba(255,255,255,0.15),
+      0 4px 14px rgba(0,0,0,0.2);
   }
   .story-badge{
     flex:0 0 auto;
-    width:32px; height:32px;
+    width:34px; height:34px;
     display:flex; align-items:center; justify-content:center;
-    font-size:16px;
-    background:rgba(255,255,255,0.22);
-    border:2px solid rgba(255,255,255,0.75);
-    border-radius:6px;
-    box-shadow:
-      inset 1px 1px 0 rgba(255,255,255,0.5),
-      inset -2px -2px 0 rgba(0,0,0,0.18),
-      2px 2px 0 rgba(0,0,0,0.2);
-    image-rendering:pixelated;
-    transition: transform 0.25s ease;
+    font-size:18px;
+    background:rgba(255,255,255,0.16);
+    border:1.5px solid rgba(255,255,255,0.55);
+    border-radius:8px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 2px 6px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease;
   }
-  .story-badge.bump{ transform: scale(1.18) rotate(-4deg); }
+  .story-badge.bump{ transform: scale(1.2) rotate(-4deg); }
   .story-text{
     flex:1;
-    font-size:11.5px;
-    line-height:1.5;
+    font-family:'DotGothic16', 'Hiragino Sans', monospace;
+    font-size:13px;
+    line-height:1.6;
     color:#fff;
     letter-spacing:0.02em;
-    text-shadow:0 1px 0 rgba(0,0,0,0.35);
+  }
+  .story-text::before{
+    content:'▶';
+    display:inline-block;
+    color:rgba(255,255,255,0.75);
+    margin-right:5px;
+    font-size:10px;
   }
 
   .idle-toast{
     position:fixed; left:16px; right:16px; top:max(12px, env(safe-area-inset-top));
-    background:var(--text); color:var(--bg); font-size:13px; font-weight:600;
+    background:var(--text); color:var(--bg);
+    font-family:'DotGothic16', monospace; font-size:14px; font-weight:400; letter-spacing:0.02em;
     text-align:center; padding:12px 16px; border-radius:14px; z-index:1100;
     opacity:0; visibility:hidden; transform:translateY(-8px);
     transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
@@ -186,11 +204,48 @@
     position:fixed;
     left:0; right:0; bottom:0;
     z-index:10;
-    padding: 0 0 calc(10px + env(safe-area-inset-bottom));
-    transition: top 0.2s ease, bottom 0.2s ease, transform 0.2s ease;
+    padding: 14px 0 calc(10px + env(safe-area-inset-bottom));
+    background: rgba(240,238,230,0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 0.5px solid rgba(224,221,211,0.7);
+    transition: top 0.2s ease, bottom 0.2s ease, transform 0.2s ease, background 0.2s ease;
   }
   .bottom-dock.centered{
     top:38%; bottom:auto; transform:translateY(-50%);
+    border-radius:20px; margin:0 8px;
+    box-shadow:0 12px 32px rgba(0,0,0,0.18);
+  }
+  .gacha-row{ padding: 0 16px 10px; }
+  .gacha-big{
+    position:relative;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%;
+    background: linear-gradient(135deg, #E7B285 0%, var(--accent) 55%, #a8502f 100%);
+    color:#fff; border:none;
+    border-radius:18px;
+    padding:18px 20px;
+    font-size:18px; font-weight:800; letter-spacing:0.02em;
+    box-shadow: 0 6px 18px rgba(201,100,66,0.45), inset 0 1px 0 rgba(255,255,255,0.35);
+    overflow:hidden;
+    animation: gachaPulse 2.4s ease-in-out infinite;
+  }
+  .gacha-big::after{
+    content:'';
+    position:absolute; top:0; left:-60%; width:35%; height:100%;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform: skewX(-20deg);
+    animation: gachaShine 3.2s ease-in-out infinite;
+  }
+  .gacha-big:active{ transform:scale(0.97); animation-play-state:paused; }
+  @keyframes gachaPulse{
+    0%,100%{ box-shadow: 0 6px 18px rgba(201,100,66,0.45), inset 0 1px 0 rgba(255,255,255,0.35); transform:scale(1); }
+    50%{ box-shadow: 0 9px 26px rgba(201,100,66,0.65), inset 0 1px 0 rgba(255,255,255,0.45); transform:scale(1.015); }
+  }
+  @keyframes gachaShine{
+    0%{ left:-60%; }
+    55%{ left:130%; }
+    100%{ left:130%; }
   }
   .quick-tags{
     display:flex; gap:10px; overflow-x:auto; -webkit-overflow-scrolling:touch;
@@ -203,11 +258,6 @@
     border-radius:999px; padding:14px 22px; font-size:16px; font-weight:700;
     box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     letter-spacing:0.01em;
-  }
-  .quick-tags button.gacha{
-    background: linear-gradient(135deg, var(--accent), #a8502f);
-    color:#fff; border:none;
-    box-shadow: 0 3px 10px rgba(201,100,66,0.35);
   }
   .searchbar{
     background:var(--surface);
@@ -244,7 +294,8 @@
     width:36px; height:36px; border-radius:18px; font-size:18px;
   }
   .overlay iframe{ width:100%; height:100%; border:0; }
-  #player{ width:100%; aspect-ratio:16/9; max-height:100vh; }
+  .player-frame{ position:relative; width:100%; aspect-ratio:16/9; max-height:100vh; overflow:hidden; background:#000; }
+  #player{ position:absolute; top:0; left:0; width:100%; height:114%; }
   .end-guard{ position:absolute; inset:0; z-index:998; background:transparent; display:none; }
   .end-guard.show{ display:block; }
   .video-loading{
@@ -273,7 +324,7 @@
     display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px;
   }
   .cooldown-overlay.open{ display:flex; }
-  .cooldown-overlay .num{ font-size:48px; font-weight:600; color:var(--accent); }
+  .cooldown-overlay .num{ font-family:'DotGothic16', monospace; font-size:52px; font-weight:400; color:var(--accent); }
   .cooldown-overlay .msg{ font-size:14px; color:var(--text-secondary); }
 
   .chan-row{
@@ -371,6 +422,9 @@
   </main>
 
   <div class="bottom-dock" id="bottomDock">
+    <div class="gacha-row">
+      <button class="gacha-big" id="gachaBigBtn">🎲 おまかせで冒険に出る</button>
+    </div>
     <div class="quick-tags" id="quickTags"></div>
     <div class="searchbar">
       <div class="row">
@@ -385,7 +439,9 @@
   <div class="overlay" id="overlay">
     <button class="close" id="closeBtn" aria-label="閉じる">✕</button>
     <button class="close" id="radioToggleBtn" style="left:16px; right:auto; display:none;" aria-label="見えにくさを切り替え">👁</button>
-    <div id="player"></div>
+    <div class="player-frame" id="playerFrame">
+      <div id="player"></div>
+    </div>
     <div class="end-guard" id="endGuard"></div>
     <div class="video-loading" id="videoLoading"><div class="ring"></div></div>
     <div class="screen-cover" id="screenCover">
@@ -773,12 +829,6 @@
     var wrap = document.getElementById('quickTags');
     wrap.innerHTML = '';
 
-    var gachaBtn = document.createElement('button');
-    gachaBtn.className = 'gacha';
-    gachaBtn.textContent = '🎲 おまかせ';
-    gachaBtn.addEventListener('click', gachaPlay);
-    wrap.appendChild(gachaBtn);
-
     quickTags.forEach(function(tag){
       var btn = document.createElement('button');
       btn.textContent = tag;
@@ -790,6 +840,7 @@
     });
   }
   renderQuickTags();
+  document.getElementById('gachaBigBtn').addEventListener('click', gachaPlay);
 
   document.getElementById('saveTagsBtn').addEventListener('click', function(){
     var v = document.getElementById('quickTagsInput').value.trim();
@@ -954,7 +1005,11 @@
     // クリックされてから YT.Player を生成すると読み込みが遅いので、
     // API準備完了の時点で裏側(非表示のオーバーレイ内)にプレイヤーを先に用意しておく。
     // ユーザーがクリックした際は loadVideoById を呼ぶだけで済むため体感速度が大きく改善する。
+    // ここで videoId を指定せずに生成すると、動画未選択の状態として
+    // YouTube側の「その他の動画」候補グリッドが表示されたままになってしまうため、
+    // 何か1本(Google公式のIFrame APIデモ動画)をcue状態(再生はしない)で読み込ませておく。
     ytPlayer = new YT.Player('player', {
+      videoId: 'M7lc1UVf-VE',
       host: 'https://www.youtube-nocookie.com',
       playerVars: { autoplay: 0, rel: 0, playsinline: 1, modestbranding: 1 },
       events: {
