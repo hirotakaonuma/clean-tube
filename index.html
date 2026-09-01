@@ -132,6 +132,46 @@
   .stamp-row .stamp-icon{ font-size:18px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
   .stamp-row .stamp-hint{ font-size:11px; color:rgba(255,255,255,0.85); }
 
+  .story-window{
+    position:relative; z-index:1;
+    width:100%;
+    display:flex; align-items:center; gap:10px;
+    margin-top:2px;
+    padding:10px 12px;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px),
+      rgba(20,14,10,0.42);
+    border-radius:8px;
+    border:2px solid rgba(255,255,255,0.55);
+    box-shadow:
+      inset 0 0 0 2px rgba(0,0,0,0.18),
+      2px 2px 0 rgba(0,0,0,0.12);
+  }
+  .story-badge{
+    flex:0 0 auto;
+    width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+    background:rgba(255,255,255,0.22);
+    border:2px solid rgba(255,255,255,0.75);
+    border-radius:6px;
+    box-shadow:
+      inset 1px 1px 0 rgba(255,255,255,0.5),
+      inset -2px -2px 0 rgba(0,0,0,0.18),
+      2px 2px 0 rgba(0,0,0,0.2);
+    image-rendering:pixelated;
+    transition: transform 0.25s ease;
+  }
+  .story-badge.bump{ transform: scale(1.18) rotate(-4deg); }
+  .story-text{
+    flex:1;
+    font-size:11.5px;
+    line-height:1.5;
+    color:#fff;
+    letter-spacing:0.02em;
+    text-shadow:0 1px 0 rgba(0,0,0,0.35);
+  }
+
   .idle-toast{
     position:fixed; left:16px; right:16px; top:max(12px, env(safe-area-inset-top));
     background:var(--text); color:var(--bg); font-size:13px; font-weight:600;
@@ -318,6 +358,10 @@
         </div>
       </div>
       <div class="stamp-row" id="stampRow"></div>
+      <div class="story-window" id="storyWindow">
+        <div class="story-badge" id="storyBadge">🌱</div>
+        <div class="story-text" id="storyText">村を旅立った。装備はひのきのぼう。</div>
+      </div>
     </div>
     <div class="idle-toast" id="idleToast"></div>
 
@@ -535,6 +579,39 @@
     pushRemoteState();
     return v;
   }
+
+  // ---- 勇者の旅ストーリー(レベル連動) ----
+  var HERO_STORY = [
+    '村を旅立った。装備はひのきのぼう。',
+    'スライムを倒し、少し自信がついた。',
+    '迷いの森を抜け、新しい街へ。',
+    '仲間と出会い、パーティを組んだ。',
+    '洞窟の奥で、光る鉱石を見つけた。',
+    '山を越え、見知らぬ国に辿り着いた。',
+    '古い神殿で、伝説の武器を手に入れた。',
+    '嵐の海を渡り、孤島に上陸した。',
+    '強敵との死闘の末、勝利をつかんだ。',
+    '王城に招かれ、勇者として認められた。',
+    '魔王軍の前線基地を突破した。',
+    'ついに魔王城に到達した!'
+  ];
+  var HERO_ICONS = ['🌱','🗡️','🗡️','🛡️','🛡️','⚔️','⚔️','🏹','🏹','👑','👑','👑'];
+  var lastStoryIdx = -1;
+
+  function renderStory(level){
+    var idx = Math.min(level - 1, HERO_STORY.length - 1);
+    document.getElementById('storyText').textContent = HERO_STORY[idx];
+    var badge = document.getElementById('storyBadge');
+    badge.textContent = HERO_ICONS[idx];
+    if(idx !== lastStoryIdx){
+      if(lastStoryIdx !== -1){
+        badge.classList.add('bump');
+        setTimeout(function(){ badge.classList.remove('bump'); }, 400);
+      }
+      lastStoryIdx = idx;
+    }
+  }
+
   function renderExp(){
     var total = loadExp();
     var level = Math.floor(total / EXP_PER_LEVEL) + 1;
@@ -543,6 +620,7 @@
     document.getElementById('expLevelText').textContent = 'Lv.' + level;
     document.getElementById('expSubText').textContent = into + ' / ' + EXP_PER_LEVEL + ' EXP';
     document.getElementById('ringFg').style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - pct));
+    renderStory(level);
   }
 
   var idleToastTimer = null;
@@ -753,7 +831,7 @@
 
   async function fetchVideos(q, maxResults){
     var searchUrl = 'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults='
-      + maxResults + '&q=' + encodeURIComponent(q) + '&key=' + encodeURIComponent(apiKey);
+      + maxResults + '&q=' + encodeURIComponent(q) + '&regionCode=JP&relevanceLanguage=ja&key=' + encodeURIComponent(apiKey);
     var searchRes = await fetch(searchUrl);
     var searchData = await searchRes.json();
     if(searchData.error) throw new Error(searchData.error.message || 'APIエラー');
@@ -800,9 +878,7 @@
         return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
       });
       items = filterUnwatched(items);
-      items.sort(function(a, b){
-        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
-      });
+      // 再生回数ソートは廃止。YouTube APIが返す関連度順(デフォルト)をそのまま採用する
       items = items.slice(0, RESULT_COUNT);
 
       if(items.length === 0){
@@ -875,11 +951,27 @@
   var pendingPlay = null;
 
   window.onYouTubeIframeAPIReady = function(){
-    apiReady = true;
-    if(pendingPlay){
-      var p = pendingPlay; pendingPlay = null;
-      loadIntoPlayer(p.id);
-    }
+    // クリックされてから YT.Player を生成すると読み込みが遅いので、
+    // API準備完了の時点で裏側(非表示のオーバーレイ内)にプレイヤーを先に用意しておく。
+    // ユーザーがクリックした際は loadVideoById を呼ぶだけで済むため体感速度が大きく改善する。
+    ytPlayer = new YT.Player('player', {
+      host: 'https://www.youtube-nocookie.com',
+      playerVars: { autoplay: 0, rel: 0, playsinline: 1, modestbranding: 1 },
+      events: {
+        onReady: function(){
+          apiReady = true;
+          document.getElementById('videoLoading').classList.remove('show');
+          if(pendingPlay){
+            var p = pendingPlay; pendingPlay = null;
+            loadIntoPlayer(p.id);
+          }
+        },
+        onStateChange: function(e){
+          if(e.data !== -1){ document.getElementById('videoLoading').classList.remove('show'); }
+          handlePlayerStateChange(e.data);
+        }
+      }
+    });
   };
 
   var endGuardInterval = null;
@@ -914,24 +1006,9 @@
   }
 
   function loadIntoPlayer(id){
-    if(!apiReady){ pendingPlay = { id: id }; return; }
+    if(!apiReady || !ytPlayer || !ytPlayer.loadVideoById){ pendingPlay = { id: id }; return; }
     document.getElementById('videoLoading').classList.add('show');
-    if(ytPlayer && ytPlayer.loadVideoById){
-      ytPlayer.loadVideoById(id);
-    } else {
-      ytPlayer = new YT.Player('player', {
-        videoId: id,
-        host: 'https://www.youtube-nocookie.com',
-        playerVars: { autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1 },
-        events: {
-          onReady: function(){ document.getElementById('videoLoading').classList.remove('show'); },
-          onStateChange: function(e){
-            if(e.data !== -1){ document.getElementById('videoLoading').classList.remove('show'); }
-            handlePlayerStateChange(e.data);
-          }
-        }
-      });
-    }
+    ytPlayer.loadVideoById(id);
   }
 
   var currentSource = 'search';
