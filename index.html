@@ -98,6 +98,50 @@
   .result-item .channel{ font-size:10px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .empty{ font-size:13px; color:var(--text-muted); grid-column:1/-1; }
 
+  .exp-panel{
+    position:relative;
+    background: linear-gradient(135deg, #C96442 0%, #D97B4F 45%, #E0A672 100%);
+    border-radius:24px;
+    padding:32px 20px 26px;
+    margin: 14px 0 20px;
+    display:flex; flex-direction:column; align-items:center; gap:16px;
+    box-shadow: 0 10px 28px rgba(201,100,66,0.28);
+    overflow:hidden;
+  }
+  .exp-panel::before{
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 55%);
+    pointer-events:none;
+  }
+  .exp-ring-wrap{ position:relative; width:160px; height:160px; }
+  .exp-ring{ width:100%; height:100%; transform:rotate(-90deg); }
+  .ring-bg{ fill:none; stroke:rgba(255,255,255,0.25); stroke-width:9; }
+  .ring-fg{
+    fill:none; stroke:#FFFFFF; stroke-width:9; stroke-linecap:round;
+    stroke-dasharray:326.7; stroke-dashoffset:326.7;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.34,1.4,0.64,1);
+    filter: drop-shadow(0 0 6px rgba(255,255,255,0.7));
+  }
+  .exp-center{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px;
+  }
+  .exp-level{ font-size:28px; font-weight:800; color:#fff; letter-spacing:0.02em; text-shadow:0 1px 4px rgba(0,0,0,0.15); }
+  .exp-sub{ font-size:12px; color:rgba(255,255,255,0.9); font-weight:600; }
+  .stamp-row{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; min-height:22px; position:relative; z-index:1; }
+  .stamp-row .stamp-icon{ font-size:18px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
+  .stamp-row .stamp-hint{ font-size:11px; color:rgba(255,255,255,0.85); }
+
+  .idle-toast{
+    position:fixed; left:16px; right:16px; top:max(12px, env(safe-area-inset-top));
+    background:var(--text); color:var(--bg); font-size:13px; font-weight:600;
+    text-align:center; padding:12px 16px; border-radius:14px; z-index:1100;
+    opacity:0; visibility:hidden; transform:translateY(-8px);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+    box-shadow:0 6px 18px rgba(0,0,0,0.18);
+  }
+  .idle-toast.show{ opacity:1; visibility:visible; transform:translateY(0); }
+
   .bottom-dock{
     position:fixed;
     left:0; right:0; bottom:0;
@@ -149,7 +193,7 @@
 
   .overlay{
     position:fixed; inset:0; background:#000; z-index:1000;
-    display:flex; flex-direction:column;
+    display:flex; flex-direction:column; justify-content:center;
     opacity:0; visibility:hidden;
     transition: opacity 0.25s ease, visibility 0.25s ease;
   }
@@ -160,7 +204,9 @@
     width:36px; height:36px; border-radius:18px; font-size:18px;
   }
   .overlay iframe{ width:100%; height:100%; border:0; }
-  #player{ width:100%; height:100%; }
+  #player{ width:100%; aspect-ratio:16/9; max-height:100vh; }
+  .end-guard{ position:absolute; inset:0; z-index:998; background:transparent; display:none; }
+  .end-guard.show{ display:block; }
   .video-loading{
     position:absolute; inset:0; display:none; align-items:center; justify-content:center;
     z-index:1001; pointer-events:none;
@@ -211,6 +257,11 @@
   <div class="counter" id="dailyCounter"></div>
 
   <div class="settings" id="settingsCard">
+    <div class="label">他の端末と同期する(Firebase Realtime Database URL)</div>
+    <div class="row" style="margin-bottom:14px;">
+      <input type="text" id="firebaseUrlInput" placeholder="https://xxxx-default-rtdb.firebaseio.com">
+      <button id="saveFirebaseBtn">保存</button>
+    </div>
     <div class="label">YouTube Data API キー</div>
     <div class="row" style="margin-bottom:14px;">
       <input type="password" id="apiKeyInput" placeholder="APIキーを貼り付け">
@@ -231,6 +282,11 @@
       <input type="text" id="gachaQueryInput" placeholder="例: TED,ゆる言語学ラジオ,教養,ドキュメンタリー">
       <button id="saveGachaBtn">保存</button>
     </div>
+    <div class="label">1日の通常視聴回数の目標(検索から再生した分のみ)</div>
+    <div class="row" style="margin-bottom:14px;">
+      <input type="number" id="dailyGoalInput" min="1" max="20" value="3">
+      <button id="saveGoalBtn">保存</button>
+    </div>
     <div class="label">クイックタグ(カンマ区切り)</div>
     <div class="row" style="margin-bottom:14px;">
       <input type="text" id="quickTagsInput" placeholder="例: 癒し,AI,投資">
@@ -250,6 +306,21 @@
   <div class="spinner" id="spinner">検索中…</div>
 
   <main>
+    <div class="exp-panel" id="expPanel">
+      <div class="exp-ring-wrap">
+        <svg class="exp-ring" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+          <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="exp-center">
+          <div class="exp-level" id="expLevelText">Lv.1</div>
+          <div class="exp-sub" id="expSubText">0 / 100 EXP</div>
+        </div>
+      </div>
+      <div class="stamp-row" id="stampRow"></div>
+    </div>
+    <div class="idle-toast" id="idleToast"></div>
+
     <div class="grid" id="results">
       <div class="empty">検索すると、ここに8件表示されます(10分未満の動画は除外)。</div>
     </div>
@@ -271,6 +342,7 @@
     <button class="close" id="closeBtn" aria-label="閉じる">✕</button>
     <button class="close" id="radioToggleBtn" style="left:16px; right:auto; display:none;" aria-label="見えにくさを切り替え">👁</button>
     <div id="player"></div>
+    <div class="end-guard" id="endGuard"></div>
     <div class="video-loading" id="videoLoading"><div class="ring"></div></div>
     <div class="screen-cover" id="screenCover">
       <div class="note">画面を見えにくくしています(タップで解除)</div>
@@ -285,7 +357,7 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 
 <script>
-(function(){
+(async function(){
   var KEY_STORAGE = 'clean-tube-api-key';
   var CHAN_STORAGE = 'clean-tube-channels';
   var COUNTER_STORAGE = 'clean-tube-daily-counter';
@@ -294,7 +366,52 @@
   var COOLDOWN_STEP = 10;      // 1本ごとに+10秒
   var MIN_DURATION_SECONDS = 600; // 10分未満は除外(通常検索のみ)
 
-  var bathModeActive = false; // ♨️/💤経由の再生中はクールダウンをスキップ
+  // ---- 他端末との同期(Firebase Realtime Database) ----
+  var FIREBASE_URL_STORAGE = 'clean-tube-firebase-url';
+  var firebaseUrl = localStorage.getItem(FIREBASE_URL_STORAGE) || '';
+  var SYNC_KEYS = [
+    'clean-tube-api-key','clean-tube-channels','clean-tube-daily-counter',
+    'clean-tube-bath-query','clean-tube-sleep-query','clean-tube-gacha-queries',
+    'clean-tube-quick-tags','clean-tube-watched-ids','clean-tube-daily-goal',
+    'clean-tube-stamps','clean-tube-stamp-checked-date','clean-tube-total-exp',
+    'clean-tube-last-stop-ts'
+  ];
+  function collectSyncState(){
+    var obj = {};
+    SYNC_KEYS.forEach(function(k){
+      var v = localStorage.getItem(k);
+      if(v !== null){ obj[k] = v; }
+    });
+    return obj;
+  }
+  function applySyncState(obj){
+    if(!obj) return;
+    Object.keys(obj).forEach(function(k){
+      if(SYNC_KEYS.indexOf(k) !== -1){ localStorage.setItem(k, obj[k]); }
+    });
+  }
+  async function pullRemoteState(){
+    if(!firebaseUrl) return;
+    try{
+      var res = await fetch(firebaseUrl.replace(/\/$/, '') + '/state.json');
+      var data = await res.json();
+      applySyncState(data);
+    } catch(e){ /* オフラインなどは無視してローカルのデータで続行 */ }
+  }
+  var pushTimer = null;
+  function pushRemoteState(){
+    if(!firebaseUrl) return;
+    if(pushTimer){ clearTimeout(pushTimer); }
+    pushTimer = setTimeout(function(){
+      fetch(firebaseUrl.replace(/\/$/, '') + '/state.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collectSyncState())
+      }).catch(function(){});
+    }, 800);
+  }
+
+  await pullRemoteState(); // 他端末のデータがあれば、ここでこの端末に反映してから読み込みを続ける
 
   // ---- watched history (視聴済みの動画は二度と出さない) ----
   var WATCHED_STORAGE = 'clean-tube-watched-ids';
@@ -308,6 +425,7 @@
       w.push(id);
       if(w.length > 500){ w = w.slice(w.length - 500); }
       localStorage.setItem(WATCHED_STORAGE, JSON.stringify(w));
+      pushRemoteState();
     }
   }
   function filterUnwatched(items){
@@ -316,7 +434,7 @@
     return filtered.length > 0 ? filtered : items; // 全部視聴済みなら元のリストを返す(手詰まり防止)
   }
 
-  // ---- daily counter (表示のみ、ロックはしない) ----
+  // ---- daily counter (検索から手動再生した回数のみをカウント) ----
   function todayStr(){ return new Date().toISOString().slice(0,10); }
   function loadCounter(){
     try{
@@ -325,14 +443,152 @@
       return raw;
     } catch(e){ return { date: todayStr(), count: 0 }; }
   }
-  function saveCounter(c){ localStorage.setItem(COUNTER_STORAGE, JSON.stringify(c)); }
+  function saveCounter(c){ localStorage.setItem(COUNTER_STORAGE, JSON.stringify(c)); pushRemoteState(); }
+
+  // ---- daily goal (⚙で設定) ----
+  var DAILY_GOAL_STORAGE = 'clean-tube-daily-goal';
+  var dailyGoal = parseInt(localStorage.getItem(DAILY_GOAL_STORAGE), 10) || 3;
+  document.getElementById('dailyGoalInput').value = dailyGoal;
+  document.getElementById('saveGoalBtn').addEventListener('click', function(){
+    var v = parseInt(document.getElementById('dailyGoalInput').value, 10);
+    if(v && v > 0){
+      dailyGoal = v;
+      localStorage.setItem(DAILY_GOAL_STORAGE, String(v));
+      pushRemoteState();
+      document.getElementById('settingsCard').classList.remove('open');
+    }
+  });
+
+  // ---- ご褒美スタンプ ----
+  var STAMP_STORAGE = 'clean-tube-stamps';
+  var STAMP_CHECK_STORAGE = 'clean-tube-stamp-checked-date';
+  function loadStamps(){
+    try{ return JSON.parse(localStorage.getItem(STAMP_STORAGE) || '[]'); }
+    catch(e){ return []; }
+  }
+  function renderStamps(){
+    var stamps = loadStamps();
+    var row = document.getElementById('stampRow');
+    row.innerHTML = '';
+    if(stamps.length === 0){
+      var hint = document.createElement('span');
+      hint.className = 'stamp-hint';
+      hint.textContent = '目標達成の翌日にスタンプが貯まります';
+      row.appendChild(hint);
+      return;
+    }
+    stamps.slice(-14).forEach(function(){
+      var span = document.createElement('span');
+      span.className = 'stamp-icon';
+      span.textContent = '💮';
+      row.appendChild(span);
+    });
+  }
+  function awardStamp(dateStr){
+    var stamps = loadStamps();
+    if(stamps.indexOf(dateStr) === -1){
+      stamps.push(dateStr);
+      localStorage.setItem(STAMP_STORAGE, JSON.stringify(stamps));
+      pushRemoteState();
+    }
+    renderStamps();
+    showIdleToast('🎉 前日の目標達成、スタンプ獲得!');
+  }
+
+  // 日付が変わった時、前日分の検索視聴回数を目標と照らしてスタンプ判定する(リロード連打でも二重判定しない)
+  function checkDailyRolloverForStamp(){
+    var raw;
+    try{ raw = JSON.parse(localStorage.getItem(COUNTER_STORAGE) || 'null'); }
+    catch(e){ raw = null; }
+    if(raw && raw.date && raw.date !== todayStr()){
+      var alreadyChecked = localStorage.getItem(STAMP_CHECK_STORAGE);
+      if(alreadyChecked !== raw.date){
+        if(typeof raw.count === 'number' && raw.count <= dailyGoal){
+          awardStamp(raw.date);
+        }
+        localStorage.setItem(STAMP_CHECK_STORAGE, raw.date);
+      }
+      saveCounter({ date: todayStr(), count: 0 });
+    }
+  }
+  checkDailyRolloverForStamp();
+
   var counter = loadCounter();
   function renderCounter(){
-    document.getElementById('dailyCounter').textContent = '今日の再生: ' + counter.count + '回';
+    document.getElementById('dailyCounter').textContent =
+      '今日の検索視聴: ' + counter.count + ' / 目標' + dailyGoal + '回';
   }
   renderCounter();
 
+  // ---- デジタルデトックスEXP / レベル ----
+  var EXP_STORAGE = 'clean-tube-total-exp';
+  var LAST_STOP_STORAGE = 'clean-tube-last-stop-ts';
+  var EXP_PER_LEVEL = 100;
+  var RING_CIRCUMFERENCE = 326.7; // 2 * PI * r(52)
+
+  function loadExp(){ return parseInt(localStorage.getItem(EXP_STORAGE), 10) || 0; }
+  function saveExp(v){ localStorage.setItem(EXP_STORAGE, String(v)); }
+  function addExp(amount){
+    var v = loadExp() + amount;
+    saveExp(v);
+    renderExp();
+    pushRemoteState();
+    return v;
+  }
+  function renderExp(){
+    var total = loadExp();
+    var level = Math.floor(total / EXP_PER_LEVEL) + 1;
+    var into = total % EXP_PER_LEVEL;
+    var pct = into / EXP_PER_LEVEL;
+    document.getElementById('expLevelText').textContent = 'Lv.' + level;
+    document.getElementById('expSubText').textContent = into + ' / ' + EXP_PER_LEVEL + ' EXP';
+    document.getElementById('ringFg').style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - pct));
+  }
+
+  var idleToastTimer = null;
+  function showIdleToast(msg){
+    var t = document.getElementById('idleToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    if(idleToastTimer){ clearTimeout(idleToastTimer); }
+    idleToastTimer = setTimeout(function(){ t.classList.remove('show'); }, 4000);
+  }
+
+  function markStopped(){
+    localStorage.setItem(LAST_STOP_STORAGE, String(Date.now()));
+    pushRemoteState();
+  }
+
+  function runIdleBonus(){
+    var last = parseInt(localStorage.getItem(LAST_STOP_STORAGE), 10);
+    var now = Date.now();
+    if(last){
+      var elapsedHours = (now - last) / 3600000;
+      var cappedHours = Math.min(elapsedHours, 24); // 1日分を上限にキャップ
+      var bonusHours = Math.floor(cappedHours);
+      if(bonusHours >= 1){
+        var bonus = bonusHours * 10;
+        addExp(bonus);
+        showIdleToast(bonusHours + '時間放置達成!+' + bonus + ' EXP');
+      }
+    }
+    markStopped();
+  }
+
+  renderExp();
+  renderStamps();
+  runIdleBonus();
+
   // ---- settings / API key ----
+  document.getElementById('firebaseUrlInput').value = firebaseUrl;
+  document.getElementById('saveFirebaseBtn').addEventListener('click', function(){
+    var v = document.getElementById('firebaseUrlInput').value.trim();
+    firebaseUrl = v;
+    localStorage.setItem(FIREBASE_URL_STORAGE, v);
+    pushRemoteState();
+    document.getElementById('settingsCard').classList.remove('open');
+  });
+
   var apiKey = localStorage.getItem(KEY_STORAGE) || '';
   document.getElementById('apiKeyInput').value = apiKey;
 
@@ -344,6 +600,7 @@
   document.getElementById('saveKeyBtn').addEventListener('click', function(){
     apiKey = document.getElementById('apiKeyInput').value.trim();
     localStorage.setItem(KEY_STORAGE, apiKey);
+    pushRemoteState();
     document.getElementById('settingsCard').classList.remove('open');
   });
 
@@ -355,6 +612,7 @@
     if(v){
       bathQuery = v;
       localStorage.setItem(BATH_QUERY_STORAGE, v);
+      pushRemoteState();
       document.getElementById('settingsCard').classList.remove('open');
     }
   });
@@ -368,6 +626,7 @@
     if(v){
       sleepQuery = v;
       localStorage.setItem(SLEEP_QUERY_STORAGE, v);
+      pushRemoteState();
       document.getElementById('settingsCard').classList.remove('open');
     }
   });
@@ -382,6 +641,7 @@
     if(v){
       gachaQueries = v.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
       localStorage.setItem(GACHA_QUERY_STORAGE, gachaQueries.join(','));
+      pushRemoteState();
       document.getElementById('settingsCard').classList.remove('open');
     }
   });
@@ -418,7 +678,7 @@
       });
       var topN = items.slice(0, Math.min(10, items.length));
       var chosen = topN[Math.floor(Math.random() * topN.length)];
-      playVideo(chosen.id, false);
+      playVideo(chosen.id, 'gacha');
     } catch(e){
       spinner.style.display = 'none';
       errEl.textContent = e.message || '通信エラーが発生しました';
@@ -458,6 +718,7 @@
     if(v){
       quickTags = v.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
       localStorage.setItem(QUICK_TAGS_STORAGE, quickTags.join(','));
+      pushRemoteState();
       renderQuickTags();
       document.getElementById('settingsCard').classList.remove('open');
     }
@@ -562,7 +823,7 @@
             '<div class="title">' + escapeHtml(snippet.title) + '</div>' +
             '<div class="channel">' + escapeHtml(snippet.channelTitle) + '</div>' +
           '</div>';
-        el.addEventListener('click', function(){ playVideo(item.id, false); });
+        el.addEventListener('click', function(){ playVideo(item.id, 'search'); });
         container.appendChild(el);
       });
     } catch(e){
@@ -572,8 +833,8 @@
     }
   }
 
-  // ---- ♨️ / 💤: auto-play top unwatched result for a preset query, no cooldown ----
-  async function specialAutoPlay(query){
+  // ---- ♨️ / 💤: auto-play top unwatched result for a preset query, no cooldown, no count ----
+  async function specialAutoPlay(query, source){
     var errEl = document.getElementById('queryErr');
     errEl.style.display = 'none';
 
@@ -598,7 +859,7 @@
         return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
       });
       items = filterUnwatched(items);
-      playVideo(items[0].id, true);
+      playVideo(items[0].id, source);
     } catch(e){
       spinner.style.display = 'none';
       errEl.textContent = e.message || '通信エラーが発生しました';
@@ -606,8 +867,8 @@
     }
   }
 
-  document.getElementById('bathBtn').addEventListener('click', function(){ specialAutoPlay(bathQuery); });
-  document.getElementById('sleepBtn').addEventListener('click', function(){ specialAutoPlay(sleepQuery); });
+  document.getElementById('bathBtn').addEventListener('click', function(){ specialAutoPlay(bathQuery, 'bath'); });
+  document.getElementById('sleepBtn').addEventListener('click', function(){ specialAutoPlay(sleepQuery, 'sleep'); });
 
   var ytPlayer = null;
   var apiReady = false;
@@ -620,6 +881,37 @@
       loadIntoPlayer(p.id);
     }
   };
+
+  var endGuardInterval = null;
+
+  function stopEndGuardTimer(){
+    if(endGuardInterval){ clearInterval(endGuardInterval); endGuardInterval = null; }
+    document.getElementById('endGuard').classList.remove('show');
+  }
+
+  function handlePlayerStateChange(state){
+    // state: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued
+    if(state === 1){ // playing
+      stopEndGuardTimer();
+      endGuardInterval = setInterval(function(){
+        if(!ytPlayer || !ytPlayer.getDuration) return;
+        var duration = ytPlayer.getDuration();
+        var current = ytPlayer.getCurrentTime();
+        if(duration > 0 && (duration - current) <= 15){
+          document.getElementById('endGuard').classList.add('show');
+        } else {
+          document.getElementById('endGuard').classList.remove('show');
+        }
+      }, 1000);
+    } else if(state === 0){ // ended: close before the "up next" screen can be tapped
+      stopEndGuardTimer();
+      if(currentSource === 'gacha'){
+        addExp(50);
+        showIdleToast('🎲 学びボーナス +50 EXP');
+      }
+      document.getElementById('closeBtn').click();
+    }
+  }
 
   function loadIntoPlayer(id){
     if(!apiReady){ pendingPlay = { id: id }; return; }
@@ -635,25 +927,34 @@
           onReady: function(){ document.getElementById('videoLoading').classList.remove('show'); },
           onStateChange: function(e){
             if(e.data !== -1){ document.getElementById('videoLoading').classList.remove('show'); }
+            handlePlayerStateChange(e.data);
           }
         }
       });
     }
   }
 
-  function playVideo(id, isBath){
-    bathModeActive = !!isBath;
-    counter = loadCounter(); // 日付が変わっていたらここで0にリセットされる
+  var currentSource = 'search';
+
+  function playVideo(id, source){
+    currentSource = source;
+    var isRadio = (source === 'bath' || source === 'sleep');
+    var countsToward = (source === 'search');
+
+    if(countsToward){
+      counter = loadCounter(); // 日付が変わっていたらここで0にリセットされる
+      counter.count += 1;
+      saveCounter(counter);
+      renderCounter();
+    }
+
     document.getElementById('overlay').classList.add('open');
     setTimeout(function(){ loadIntoPlayer(id); }, 50);
     markWatched(id);
-    counter.count += 1;
-    saveCounter(counter);
-    renderCounter();
 
     var cover = document.getElementById('screenCover');
     var toggleBtn = document.getElementById('radioToggleBtn');
-    if(isBath){
+    if(isRadio){
       cover.classList.add('show');
       toggleBtn.style.display = 'flex';
     } else {
@@ -696,13 +997,13 @@
 
   document.getElementById('closeBtn').addEventListener('click', function(){
     document.getElementById('overlay').classList.remove('open');
+    markStopped();
     setTimeout(function(){
       if(ytPlayer && ytPlayer.stopVideo){ ytPlayer.stopVideo(); }
-      if(bathModeActive){
-        bathModeActive = false; // お風呂/睡眠再生はクールダウンなし
-      } else {
+      if(currentSource === 'search'){
         startCooldown();
       }
+      // bath / sleep / gacha: クールダウンなし(有益・必要な視聴として扱う)
     }, 300);
   });
 
@@ -719,7 +1020,7 @@
     } catch(e){ return []; }
   }
   function saveChannels(list){
-    try{ localStorage.setItem(CHAN_STORAGE, JSON.stringify(list)); } catch(e){}
+    try{ localStorage.setItem(CHAN_STORAGE, JSON.stringify(list)); pushRemoteState(); } catch(e){}
   }
   var channels = loadChannels();
 
@@ -780,4 +1081,3 @@
 </script>
 </body>
 </html>
-
