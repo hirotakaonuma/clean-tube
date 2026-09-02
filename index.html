@@ -287,6 +287,7 @@
     position:absolute; top:max(16px, env(safe-area-inset-top)); right:16px;
     z-index:1001; background:rgba(0,0,0,0.5); color:#fff; border:none;
     width:36px; height:36px; border-radius:18px; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
   }
   .overlay iframe{ width:100%; height:100%; border:0; }
   .player-frame{ position:relative; width:100%; aspect-ratio:16/9; max-height:100vh; overflow:hidden; background:#000; }
@@ -378,7 +379,7 @@
   <div class="counter" id="dailyCounter"></div>
   <div class="wisdom-box" id="wisdomBox">
     <div class="wisdom-label" id="wisdomLabel">今日の知恵</div>
-    <div class="wisdom-text" id="wisdomText">静けさに耐えられる心は、集中できる心と同じものである。</div>
+    <div class="wisdom-text" id="wisdomText">モヤモヤした感情は、名前をつけて言葉にするだけで脳の興奮が落ち着きやすくなる。</div>
   </div>
 
   <div class="settings" id="settingsCard">
@@ -404,7 +405,7 @@
     </div>
     <div class="label">🎲 ガチャの候補(カンマ区切り)</div>
     <div class="row" style="margin-bottom:14px;">
-      <input type="text" id="gachaQueryInput" placeholder="例: TED,ゆる言語学ラジオ,教養,ドキュメンタリー">
+      <input type="text" id="gachaQueryInput" placeholder="例: ゆる言語学ラジオ,本要約チャンネル">
       <button id="saveGachaBtn">保存</button>
     </div>
     <div class="label">1日の通常視聴回数の目標(検索から再生した分のみ)</div>
@@ -468,7 +469,27 @@
 
   <div class="overlay" id="overlay">
     <button class="close" id="closeBtn" aria-label="閉じる">✕</button>
-    <button class="close" id="radioToggleBtn" style="left:16px; right:auto; display:none;" aria-label="見えにくさを切り替え">👁</button>
+    <button class="close" id="radioToggleBtn" style="left:16px; right:auto; display:none;" aria-label="見えにくさを切り替え">
+      <svg width="22" height="14" viewBox="0 0 36 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <filter id="slitGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="0.6" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <rect x="1" y="4" width="34" height="12" rx="3" fill="#050505" stroke="rgba(255,255,255,0.18)" stroke-width="0.6"/>
+        <line x1="2" y1="10" x2="34" y2="10" stroke="#8FF0FF" stroke-width="1" opacity="0.9" filter="url(#slitGlow)"/>
+        <line x1="6" y1="6.5" x2="6" y2="13.5" stroke="#8FF0FF" stroke-width="0.7" opacity="0.55"/>
+        <line x1="11" y1="5.5" x2="11" y2="14.5" stroke="#ffffff" stroke-width="0.6" opacity="0.4"/>
+        <line x1="16" y1="7" x2="16" y2="13" stroke="#8FF0FF" stroke-width="0.6" opacity="0.6"/>
+        <line x1="21" y1="5.8" x2="21" y2="14.2" stroke="#ffffff" stroke-width="0.5" opacity="0.35"/>
+        <line x1="26" y1="6.8" x2="26" y2="13.2" stroke="#8FF0FF" stroke-width="0.6" opacity="0.5"/>
+        <line x1="30" y1="5.5" x2="30" y2="14.5" stroke="#ffffff" stroke-width="0.5" opacity="0.4"/>
+      </svg>
+    </button>
     <div class="player-frame" id="playerFrame">
       <div id="player"></div>
     </div>
@@ -659,26 +680,26 @@
   }
   renderCounter();
 
-  // ---- 今日の知恵(名著・哲学・心理学のエッセンスを一行で) ----
+  // ---- 今日の知恵(心理学の本から、知っておくと生きやすくなる考え方を一行で) ----
   var WISDOM_QUOTES = [
-    { text:'退屈は、何も起きていないのではない。心が何かを欲しがっている合図だ。', tag:'心理学' },
-    { text:'刺激を求める心を止める方法は、ただ立ち止まることだけだ。', tag:'哲学' },
-    { text:'時間を制する者は、人生を制する。', tag:'処世訓' },
-    { text:'何も足さない時間の中でこそ、本当の自分に出会える。', tag:'禅語' },
-    { text:'習慣とは、日々の小さな選択が積み重なった影である。', tag:'哲学' },
-    { text:'退屈に耐えられる心は、集中できる心と同じものである。', tag:'心理学' },
-    { text:'満たされない気持ちは、埋めるのではなく眺めるとよい。', tag:'禅語' },
-    { text:'今この瞬間だけが、あなたが本当に生きている時間である。', tag:'哲学' },
-    { text:'怠惰とは休むことではなく、目的を見失うことだ。', tag:'処世訓' },
-    { text:'画面の中に答えはない。答えは、画面を閉じた後の時間にある。', tag:'心理学' },
-    { text:'小さな我慢の積み重ねが、大きな自由をつくる。', tag:'処世訓' },
-    { text:'本当の豊かさは、何を持つかではなく、何を手放せるかで決まる。', tag:'哲学' },
-    { text:'静けさに耐えられない心は、まだ何かに支配されている。', tag:'禅語' },
-    { text:'人は、退屈と向き合う力を失った分だけ、自由を失う。', tag:'心理学' },
-    { text:'今日は何を"見た"かではなく、何を"考えた"かを思い出せるように。', tag:'処世訓' },
-    { text:'急いでいる時ほど、遠回りに見える道を選んでみるとよい。', tag:'哲学' },
-    { text:'心を鍛えるとは、刺激を減らす勇気を持つことでもある。', tag:'心理学' },
-    { text:'一期一会。この時間は、二度と戻らない。', tag:'禅語' }
+    { text:'モヤモヤした感情は、名前をつけて言葉にするだけで脳の興奮が落ち着きやすくなる。', tag:'心理学' },
+    { text:'面倒な作業ほど「とりあえず2分だけ」と決めると、驚くほど始めやすくなる。', tag:'習慣化' },
+    { text:'悩みごとは頭の中で考えるより、紙に書き出すだけで負担が軽くなる。', tag:'ストレス対策' },
+    { text:'選択肢は多いほど良いわけではない。絞り込むほど満足度は上がりやすい。', tag:'意思決定' },
+    { text:'人は何かを得る喜びより、失う痛みを約2倍強く感じるようにできている。', tag:'心理学' },
+    { text:'完璧を目指すより「まず終わらせる」ことを優先した方が、結果的に質も上がりやすい。', tag:'習慣化' },
+    { text:'感謝できることを3つ書き出す習慣は、気分の落ち込みを和らげると言われている。', tag:'メンタルケア' },
+    { text:'他人と自分を比べる時間を減らすほど、自己肯定感は回復しやすい。', tag:'心理学' },
+    { text:'疲れを感じたら、休むことより「環境を変える」方が早く回復することもある。', tag:'ストレス対策' },
+    { text:'毎日同じ判断を繰り返す部分をルーティン化すると、決断疲れを防ぎやすい。', tag:'意思決定' },
+    { text:'ゆっくり長く息を吐くことを意識するだけで、心身は落ち着きを取り戻しやすい。', tag:'ストレス対策' },
+    { text:'目標は「なりたい姿」よりも「日々の具体的な行動」で決めた方が続きやすい。', tag:'習慣化' },
+    { text:'人の脳はマルチタスクをしているのではなく、高速に切り替えて消耗しているだけ。', tag:'心理学' },
+    { text:'自分を責める声も、友人にかけるような優しい言葉に変えると立ち直りが早くなる。', tag:'メンタルケア' },
+    { text:'寝る前の1時間の過ごし方が、翌日の意志力の残量を大きく左右する。', tag:'睡眠' },
+    { text:'小さな達成を記録していくと、自分への信頼は少しずつ積み上がっていく。', tag:'心理学' },
+    { text:'「なぜできないか」より「どうすればできるか」と問い直すと、行動に移しやすい。', tag:'意思決定' },
+    { text:'人間関係の満足度は、一緒にいる時間の長さより「深く話した回数」で決まりやすい。', tag:'人間関係' }
   ];
   var lastWisdomIdx = -1;
   function renderWisdom(idx){
@@ -813,7 +834,7 @@
 
   // ---- gacha query list ----
   var GACHA_QUERY_STORAGE = 'clean-tube-gacha-queries';
-  var gachaQueries = (localStorage.getItem(GACHA_QUERY_STORAGE) || 'TED,ゆる言語学ラジオ,教養,ドキュメンタリー')
+  var gachaQueries = (localStorage.getItem(GACHA_QUERY_STORAGE) || 'ゆる言語学ラジオ,本要約チャンネル')
     .split(',').map(function(s){ return s.trim(); }).filter(Boolean);
   document.getElementById('gachaQueryInput').value = gachaQueries.join(',');
   document.getElementById('saveGachaBtn').addEventListener('click', function(){
@@ -1177,12 +1198,11 @@
 
     var cover = document.getElementById('screenCover');
     var toggleBtn = document.getElementById('radioToggleBtn');
+    toggleBtn.style.display = 'flex';
     if(isRadio){
       cover.classList.add('show');
-      toggleBtn.style.display = 'flex';
     } else {
       cover.classList.remove('show');
-      toggleBtn.style.display = 'none';
     }
   }
 
@@ -1190,7 +1210,12 @@
     this.classList.remove('show');
   });
   document.getElementById('radioToggleBtn').addEventListener('click', function(){
-    document.getElementById('screenCover').classList.toggle('show');
+    var cover = document.getElementById('screenCover');
+    cover.classList.toggle('show');
+    if(cover.classList.contains('show')){
+      // 見えづらくしている間は画質を上げても意味がないため、最低画質に落として通信量を節約する
+      enforceEcoQuality();
+    }
   });
 
   // ---- ラジオ画面: タイトル・再生時間の表示更新 ----
@@ -1338,4 +1363,3 @@
 </script>
 </body>
 </html>
-
