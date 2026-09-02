@@ -146,6 +146,7 @@
   .result-item .channel{ font-size:10px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .empty{ font-size:13px; color:var(--text-muted); grid-column:1/-1; }
 
+  .exp-panel.hidden{ display:none; }
   .exp-panel{
     position:relative;
     background: linear-gradient(135deg, #C96442 0%, #D97B4F 45%, #E0A672 100%);
@@ -940,17 +941,20 @@
     var q = queryInput.value.trim();
     errEl.style.display = 'none';
     document.getElementById('results').innerHTML = '';
+    document.getElementById('expPanel').classList.add('hidden');
     queryInput.blur();
 
     if(!apiKey){
       errEl.textContent = '先に⚙からAPIキーを保存してください';
       errEl.style.display = 'block';
       document.getElementById('settingsCard').classList.add('open');
+      document.getElementById('expPanel').classList.remove('hidden');
       return;
     }
     if(!q){
       errEl.textContent = 'キーワードを入力してください';
       errEl.style.display = 'block';
+      document.getElementById('expPanel').classList.remove('hidden');
       return;
     }
 
@@ -971,6 +975,7 @@
       if(items.length === 0){
         errEl.textContent = '10分以上の動画が見つかりませんでした';
         errEl.style.display = 'block';
+        document.getElementById('expPanel').classList.remove('hidden');
         return;
       }
 
@@ -993,6 +998,7 @@
       spinner.style.display = 'none';
       errEl.textContent = e.message || '通信エラーが発生しました';
       errEl.style.display = 'block';
+      document.getElementById('expPanel').classList.remove('hidden');
     }
   }
 
@@ -1047,7 +1053,7 @@
     ytPlayer = new YT.Player('player', {
       videoId: 'M7lc1UVf-VE',
       host: 'https://www.youtube-nocookie.com',
-      playerVars: { autoplay: 0, rel: 0, playsinline: 1, modestbranding: 1 },
+      playerVars: { autoplay: 0, rel: 0, playsinline: 1, modestbranding: 1, iv_load_policy: 3 },
       events: {
         onReady: function(){
           apiReady = true;
@@ -1298,4 +1304,3 @@
 </script>
 </body>
 </html>
-
