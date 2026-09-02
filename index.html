@@ -290,12 +290,12 @@
   }
   .overlay iframe{ width:100%; height:100%; border:0; }
   .player-frame{ position:relative; width:100%; aspect-ratio:16/9; max-height:100vh; overflow:hidden; background:#000; }
-  #player{ position:absolute; top:0; left:0; width:100%; height:114%; }
-  .end-guard{ position:absolute; inset:0; z-index:998; background:transparent; display:none; }
+  #player{ position:absolute; top:0; left:0; width:100%; height:180%; }
+  .end-guard{ position:absolute; left:0; right:0; bottom:0; height:26%; z-index:998; background:linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.94) 45%); display:none; }
   .end-guard.show{ display:block; }
   .video-loading{
-    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
-    z-index:1001; pointer-events:none;
+    position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    z-index:1001; pointer-events:none; padding:0 32px;
   }
   .video-loading.show{ display:flex; }
   .video-loading .ring{
@@ -303,6 +303,12 @@
     border:3px solid rgba(255,255,255,0.25); border-top-color:#fff;
     animation: spin 0.8s linear infinite;
   }
+  .loading-quote{
+    font-family:'Shippori Mincho', serif; font-style:italic; font-size:13px; line-height:1.7;
+    color:rgba(255,255,255,0.82); text-align:center; max-width:280px;
+    opacity:0; transition:opacity 0.4s ease;
+  }
+  .loading-quote.show{ opacity:1; }
   @keyframes spin{ to{ transform:rotate(360deg); } }
   .screen-cover{
     position:absolute; inset:0;
@@ -467,7 +473,10 @@
       <div id="player"></div>
     </div>
     <div class="end-guard" id="endGuard"></div>
-    <div class="video-loading" id="videoLoading"><div class="ring"></div></div>
+    <div class="video-loading" id="videoLoading">
+      <div class="ring"></div>
+      <div class="loading-quote" id="loadingQuote"></div>
+    </div>
     <div class="screen-cover" id="screenCover">
       <div class="radio-dial">
         <div class="radio-dial-glow"></div>
@@ -1057,14 +1066,14 @@
       events: {
         onReady: function(){
           apiReady = true;
-          document.getElementById('videoLoading').classList.remove('show');
+          hideVideoLoading();
           if(pendingPlay){
             var p = pendingPlay; pendingPlay = null;
             loadIntoPlayer(p.id);
           }
         },
         onStateChange: function(e){
-          if(e.data !== -1){ document.getElementById('videoLoading').classList.remove('show'); }
+          if(e.data !== -1){ hideVideoLoading(); }
           enforceEcoQuality();
           handlePlayerStateChange(e.data);
         }
@@ -1094,7 +1103,7 @@
         if(!ytPlayer || !ytPlayer.getDuration) return;
         var duration = ytPlayer.getDuration();
         var current = ytPlayer.getCurrentTime();
-        if(duration > 0 && (duration - current) <= 15){
+        if(duration > 0 && (duration - current) <= 20){
           document.getElementById('endGuard').classList.add('show');
         } else {
           document.getElementById('endGuard').classList.remove('show');
@@ -1112,9 +1121,34 @@
 
   function loadIntoPlayer(id){
     if(!apiReady || !ytPlayer || !ytPlayer.loadVideoById){ pendingPlay = { id: id }; return; }
-    document.getElementById('videoLoading').classList.add('show');
+    showVideoLoading();
     ytPlayer.loadVideoById(id);
     enforceEcoQuality();
+  }
+
+  // ---- 動画読み込み中の暇つぶし表示: 通信を増やさず、既存の名言データを使い回す ----
+  var loadingQuoteInterval = null;
+  var lastLoadingQuoteIdx = -1;
+  function showRandomLoadingQuote(){
+    var el = document.getElementById('loadingQuote');
+    var idx;
+    do{ idx = Math.floor(Math.random() * WISDOM_QUOTES.length); } while(idx === lastLoadingQuoteIdx && WISDOM_QUOTES.length > 1);
+    lastLoadingQuoteIdx = idx;
+    el.classList.remove('show');
+    setTimeout(function(){
+      el.textContent = WISDOM_QUOTES[idx].text;
+      el.classList.add('show');
+    }, 200);
+  }
+  function showVideoLoading(){
+    document.getElementById('videoLoading').classList.add('show');
+    showRandomLoadingQuote();
+    if(loadingQuoteInterval){ clearInterval(loadingQuoteInterval); }
+    loadingQuoteInterval = setInterval(showRandomLoadingQuote, 4000);
+  }
+  function hideVideoLoading(){
+    document.getElementById('videoLoading').classList.remove('show');
+    if(loadingQuoteInterval){ clearInterval(loadingQuoteInterval); loadingQuoteInterval = null; }
   }
 
   var currentSource = 'search';
