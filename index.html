@@ -352,12 +352,51 @@
   }
 
   .cooldown-overlay{
-    position:fixed; inset:0; background:var(--bg); z-index:900;
-    display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px;
+    position:fixed; inset:0; z-index:900;
+    background:
+      radial-gradient(ellipse at top, rgba(255,250,235,0.55), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+  }
+  .cooldown-overlay::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(92,64,41,0.03) 0px, rgba(92,64,41,0.03) 1px, transparent 1px, transparent 3px),
+      repeating-linear-gradient(90deg, rgba(92,64,41,0.02) 0px, rgba(92,64,41,0.02) 1px, transparent 1px, transparent 3px);
   }
   .cooldown-overlay.open{ display:flex; }
-  .cooldown-overlay .num{ font-family:'DotGothic16', monospace; font-size:52px; font-weight:400; color:var(--accent); }
-  .cooldown-overlay .msg{ font-size:14px; color:var(--text-secondary); }
+  .cooldown-card{
+    position:relative; z-index:1;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+    padding:36px 30px 30px;
+    max-width:280px;
+    background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+    border:0.5px solid var(--border);
+    border-radius:26px;
+    box-shadow: 0 14px 34px rgba(58,42,26,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+    animation: cooldownCardIn 0.4s cubic-bezier(0.22,1.4,0.36,1);
+  }
+  @keyframes cooldownCardIn{
+    0%{ opacity:0; transform:translateY(10px) scale(0.95); }
+    100%{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  .cooldown-icon{ font-size:26px; filter: drop-shadow(0 2px 4px rgba(58,42,26,0.12)); }
+  .cooldown-ring-wrap{ position:relative; width:140px; height:140px; }
+  .cooldown-ring{ width:100%; height:100%; transform:rotate(-90deg); }
+  .cd-ring-bg{ fill:none; stroke:var(--border); stroke-width:8; opacity:0.45; }
+  .cd-ring-fg{
+    fill:none; stroke:var(--accent); stroke-width:8; stroke-linecap:round;
+    stroke-dasharray:326.7; stroke-dashoffset:0;
+    transition: stroke-dashoffset 0.92s linear;
+    filter: drop-shadow(0 0 5px rgba(169,98,46,0.5));
+  }
+  .cooldown-num-wrap{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:1px;
+  }
+  .cooldown-overlay .num{ font-family:'DotGothic16', monospace; font-size:42px; font-weight:400; color:var(--text); line-height:1; }
+  .cooldown-unit{ font-family:'DotGothic16', monospace; font-size:10px; color:var(--text-muted); letter-spacing:0.2em; }
+  .cooldown-overlay .msg{ font-size:13.5px; color:var(--text-secondary); text-align:center; line-height:1.65; }
 
   .gacha-choice-overlay{
     position:fixed; inset:0; z-index:1200;
@@ -599,8 +638,20 @@
   </div>
 
   <div class="cooldown-overlay" id="cooldownOverlay">
-    <div class="num" id="cooldownNum">10</div>
-    <div class="msg" id="cooldownMsg">少し休憩してから次へ</div>
+    <div class="cooldown-card">
+      <div class="cooldown-icon">☕</div>
+      <div class="cooldown-ring-wrap">
+        <svg class="cooldown-ring" viewBox="0 0 120 120">
+          <circle class="cd-ring-bg" cx="60" cy="60" r="52"></circle>
+          <circle class="cd-ring-fg" id="cooldownRingFg" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="cooldown-num-wrap">
+          <div class="num" id="cooldownNum">10</div>
+          <div class="cooldown-unit">SEC</div>
+        </div>
+      </div>
+      <div class="msg" id="cooldownMsg">少し休憩してから次へ</div>
+    </div>
   </div>
 
   <div class="gacha-choice-overlay" id="gachaChoiceOverlay">
@@ -1029,7 +1080,9 @@
   document.getElementById('gachaChoiceCancel').addEventListener('click', hideGachaChoices);
   document.getElementById('gachaChoiceReroll').addEventListener('click', function(){
     hideGachaChoices();
-    gachaPlay();
+    startCooldown(10, '引き直しにはひと呼吸おきましょう', function(){
+      gachaPlay();
+    });
   });
 
   // ---- quick tags ----
@@ -1418,22 +1471,43 @@
     return COOLDOWN_STEP * counter.count; // 1本目10s, 2本目20s, 3本目30s ...
   }
 
-  function startCooldown(){
+  var COOLDOWN_RING_CIRCUMFERENCE = 326.7; // r=52の円周(exp-ringと同じ)
+
+  function startCooldown(seconds, message, onDone){
     var overlayEl = document.getElementById('cooldownOverlay');
     var numEl = document.getElementById('cooldownNum');
     var msgEl = document.getElementById('cooldownMsg');
-    var remaining = currentCooldownSeconds();
+    var ringEl = document.getElementById('cooldownRingFg');
+    var total = seconds;
+    var remaining = seconds;
+
+    function renderRing(){
+      var frac = total > 0 ? Math.max(0, remaining / total) : 0;
+      ringEl.style.transition = 'none';
+      ringEl.style.strokeDashoffset = (COOLDOWN_RING_CIRCUMFERENCE * (1 - frac));
+      // 次のフレームからtransitionを効かせて、なめらかに減っていくように見せる
+      requestAnimationFrame(function(){
+        ringEl.style.transition = 'stroke-dashoffset 0.92s linear';
+      });
+    }
+
     numEl.textContent = remaining;
-    msgEl.textContent = counter.count + '本目を見ました。少し休憩してから次へ';
+    msgEl.textContent = message;
     overlayEl.classList.add('open');
+    renderRing();
+
     var timer = setInterval(function(){
       remaining -= 1;
       if(remaining <= 0){
         clearInterval(timer);
+        numEl.textContent = 0;
+        ringEl.style.strokeDashoffset = COOLDOWN_RING_CIRCUMFERENCE;
         overlayEl.classList.remove('open');
+        if(typeof onDone === 'function'){ onDone(); }
         return;
       }
       numEl.textContent = remaining;
+      ringEl.style.strokeDashoffset = (COOLDOWN_RING_CIRCUMFERENCE * (1 - remaining / total));
     }, 1000);
   }
 
@@ -1444,9 +1518,11 @@
     setTimeout(function(){
       if(ytPlayer && ytPlayer.stopVideo){ ytPlayer.stopVideo(); }
       if(currentSource === 'search'){
-        startCooldown();
+        startCooldown(currentCooldownSeconds(), counter.count + '本目を見ました。少し休憩してから次へ');
+      } else if(currentSource === 'gacha'){
+        startCooldown(15, 'おまかせ動画を閉じました。少し休憩してから次へ');
       }
-      // bath / sleep / gacha: クールダウンなし(有益・必要な視聴として扱う)
+      // bath / sleep: クールダウンなし(有益・必要な視聴として扱う)
     }, 300);
   });
 
