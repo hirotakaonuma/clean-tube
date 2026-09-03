@@ -291,6 +291,7 @@
   }
   .overlay iframe{ width:100%; height:100%; border:0; }
   .player-frame{ position:relative; width:100%; aspect-ratio:16/9; max-height:100vh; overflow:hidden; background:#000; }
+  .player-frame.eco-shrink #player{ width:160px; height:103px; }
   #player{ position:absolute; top:0; left:0; width:100%; height:114%; }
   .end-guard{ position:absolute; left:0; right:0; bottom:0; height:16%; z-index:998; background:linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.94) 50%); display:none; }
   .end-guard.show{ display:block; }
@@ -357,6 +358,94 @@
   .cooldown-overlay.open{ display:flex; }
   .cooldown-overlay .num{ font-family:'DotGothic16', monospace; font-size:52px; font-weight:400; color:var(--accent); }
   .cooldown-overlay .msg{ font-size:14px; color:var(--text-secondary); }
+
+  .gacha-choice-overlay{
+    position:fixed; inset:0; z-index:1200;
+    display:none; align-items:flex-end; justify-content:center;
+    background:
+      radial-gradient(circle at 50% 15%, rgba(233,175,120,0.25), transparent 55%),
+      rgba(20,14,8,0.72);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    opacity:0; transition: opacity 0.25s ease;
+  }
+  .gacha-choice-overlay.open{ display:flex; opacity:1; }
+  .gacha-choice-panel{
+    position:relative; width:100%; max-width:480px;
+    background:
+      repeating-linear-gradient(0deg, rgba(120,90,50,0.045) 0px, rgba(120,90,50,0.045) 1px, transparent 1px, transparent 3px),
+      linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+    border-radius:28px 28px 0 0;
+    padding: 22px 16px calc(22px + env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.35);
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.22,1,0.36,1);
+  }
+  .gacha-choice-overlay.open .gacha-choice-panel{ transform:translateY(0); }
+  .gacha-choice-head{ display:flex; flex-direction:column; align-items:center; gap:2px; margin-bottom:16px; }
+  .gacha-choice-eyebrow{ font-family:'DotGothic16', monospace; font-size:11px; letter-spacing:0.22em; color:var(--text-muted); }
+  .gacha-choice-title{ font-family:'Shippori Mincho', serif; font-size:17px; font-weight:700; color:var(--text); letter-spacing:0.03em; }
+  .gacha-choice-cards{ display:flex; flex-direction:column; gap:12px; }
+  .gacha-choice-card{
+    position:relative;
+    display:flex; align-items:center; gap:12px;
+    text-align:left;
+    background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+    border:0.5px solid var(--border);
+    border-radius:16px;
+    padding:10px;
+    overflow:hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.7),
+      0 4px 14px rgba(58,42,26,0.10);
+    opacity:0; transform: translateY(18px) scale(0.94);
+    animation: gachaCardIn 0.5s cubic-bezier(0.22,1.4,0.36,1) forwards;
+  }
+  .gacha-choice-card:nth-child(1){ animation-delay:0.08s; }
+  .gacha-choice-card:nth-child(2){ animation-delay:0.22s; }
+  .gacha-choice-card:nth-child(3){ animation-delay:0.36s; }
+  @keyframes gachaCardIn{
+    0%{ opacity:0; transform:translateY(18px) scale(0.94); }
+    60%{ opacity:1; }
+    100%{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  .gacha-choice-card::before{
+    content:''; position:absolute; inset:0; border-radius:16px;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.5) 50%, transparent 70%);
+    background-size:200% 100%; background-position:150% 0;
+    pointer-events:none; opacity:0;
+  }
+  .gacha-choice-card.reveal-shine::before{
+    animation: gachaCardShine 0.7s ease-out forwards;
+  }
+  @keyframes gachaCardShine{
+    0%{ opacity:1; background-position:150% 0; }
+    100%{ opacity:0; background-position:-50% 0; }
+  }
+  .gacha-choice-card:active{ transform:scale(0.97); }
+  .gacha-choice-num{
+    flex:0 0 auto; width:22px; height:22px; border-radius:50%;
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    color:#fff; font-family:'DotGothic16', monospace; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(169,98,46,0.4);
+    position:absolute; top:-6px; left:-6px; z-index:2;
+  }
+  .gacha-choice-card img{
+    width:104px; aspect-ratio:16/10; object-fit:cover; border-radius:11px; flex:0 0 auto;
+    box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  }
+  .gacha-choice-card .meta{ min-width:0; flex:1; }
+  .gacha-choice-card .title{
+    font-size:13px; font-weight:500; line-height:1.4; color:var(--text);
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .gacha-choice-card .channel{ font-size:11px; color:var(--text-muted); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .gacha-choice-foot{ display:flex; gap:10px; margin-top:16px; }
+  .gacha-choice-reroll, .gacha-choice-cancel{
+    flex:1; padding:12px; border-radius:14px; font-size:13px; font-weight:600;
+    background:var(--surface-2); border:0.5px solid var(--border); color:var(--text-secondary);
+  }
+  .gacha-choice-reroll{ color:var(--accent); }
 
   .chan-row{
     display:flex; align-items:center; justify-content:space-between;
@@ -512,6 +601,20 @@
   <div class="cooldown-overlay" id="cooldownOverlay">
     <div class="num" id="cooldownNum">10</div>
     <div class="msg" id="cooldownMsg">少し休憩してから次へ</div>
+  </div>
+
+  <div class="gacha-choice-overlay" id="gachaChoiceOverlay">
+    <div class="gacha-choice-panel">
+      <div class="gacha-choice-head">
+        <div class="gacha-choice-eyebrow">GACHA RESULT</div>
+        <div class="gacha-choice-title">🎲 3つの中から選んでください</div>
+      </div>
+      <div class="gacha-choice-cards" id="gachaChoiceCards"></div>
+      <div class="gacha-choice-foot">
+        <button class="gacha-choice-reroll" id="gachaChoiceReroll">🔄 引き直す</button>
+        <button class="gacha-choice-cancel" id="gachaChoiceCancel">やめる</button>
+      </div>
+    </div>
   </div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -878,14 +981,56 @@
         return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
       });
       var topN = items.slice(0, Math.min(10, items.length));
-      var chosen = topN[Math.floor(Math.random() * topN.length)];
-      playVideo(chosen.id, 'gacha', chosen.snippet.title);
+      // シャッフルして重複なしで最大3件抽出
+      var shuffled = topN.slice();
+      for(var i = shuffled.length - 1; i > 0; i--){
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
+      }
+      var picks = shuffled.slice(0, Math.min(3, shuffled.length));
+      showGachaChoices(picks);
     } catch(e){
       spinner.style.display = 'none';
       errEl.textContent = e.message || '通信エラーが発生しました';
       errEl.style.display = 'block';
     }
   }
+
+  // ---- gacha: 3択の選択画面 ----
+  function showGachaChoices(items){
+    var container = document.getElementById('gachaChoiceCards');
+    container.innerHTML = '';
+    items.forEach(function(item, idx){
+      var snippet = item.snippet;
+      var thumb = (snippet.thumbnails.medium || snippet.thumbnails.default).url;
+      var el = document.createElement('button');
+      el.className = 'gacha-choice-card';
+      el.innerHTML =
+        '<span class="gacha-choice-num">' + (idx + 1) + '</span>' +
+        '<img src="' + thumb + '" alt="">' +
+        '<div class="meta">' +
+          '<div class="title">' + escapeHtml(snippet.title) + '</div>' +
+          '<div class="channel">' + escapeHtml(snippet.channelTitle) + '</div>' +
+        '</div>';
+      el.addEventListener('click', function(){
+        el.classList.add('reveal-shine');
+        setTimeout(function(){
+          hideGachaChoices();
+          playVideo(item.id, 'gacha', snippet.title);
+        }, 180);
+      });
+      container.appendChild(el);
+    });
+    document.getElementById('gachaChoiceOverlay').classList.add('open');
+  }
+  function hideGachaChoices(){
+    document.getElementById('gachaChoiceOverlay').classList.remove('open');
+  }
+  document.getElementById('gachaChoiceCancel').addEventListener('click', hideGachaChoices);
+  document.getElementById('gachaChoiceReroll').addEventListener('click', function(){
+    hideGachaChoices();
+    gachaPlay();
+  });
 
   // ---- quick tags ----
   var QUICK_TAGS_STORAGE = 'clean-tube-quick-tags';
@@ -1103,10 +1248,19 @@
   };
 
   // ---- 音声エコモード: 通信量節約のため常に最低画質(音声中心)で再生する ----
+  // 注: YouTube側は setPlaybackQuality による強制を現在ほぼ無視するため、
+  // 「前回視聴時の画質を引き継ぐだけ」になりがち。そこで実際に効く方法として、
+  // プレイヤーの表示サイズそのものを小さくする(YouTubeの自動画質選択は表示サイズも見て決めている)。
+  // 見えづらくしている間・お風呂/睡眠モード中は画面を覗いても分からないため、これで確実に低画質化する。
   function enforceEcoQuality(){
     if(ytPlayer && ytPlayer.setPlaybackQuality){
       try{ ytPlayer.setPlaybackQuality('tiny'); } catch(e){}
     }
+  }
+  function setEcoShrink(on){
+    var pf = document.getElementById('playerFrame');
+    if(on){ pf.classList.add('eco-shrink'); } else { pf.classList.remove('eco-shrink'); }
+    enforceEcoQuality();
   }
 
   var endGuardInterval = null;
@@ -1174,6 +1328,7 @@
 
   var currentSource = 'search';
   var currentVideoTitle = '';
+  var currentIsRadio = false;
 
   function playVideo(id, source, title){
     currentSource = source;
@@ -1199,10 +1354,13 @@
     var cover = document.getElementById('screenCover');
     var toggleBtn = document.getElementById('radioToggleBtn');
     toggleBtn.style.display = 'flex';
+    currentIsRadio = isRadio;
     if(isRadio){
       cover.classList.add('show');
+      setEcoShrink(true);
     } else {
       cover.classList.remove('show');
+      setEcoShrink(false);
     }
   }
 
@@ -1212,9 +1370,12 @@
   document.getElementById('radioToggleBtn').addEventListener('click', function(){
     var cover = document.getElementById('screenCover');
     cover.classList.toggle('show');
-    if(cover.classList.contains('show')){
-      // 見えづらくしている間は画質を上げても意味がないため、最低画質に落として通信量を節約する
-      enforceEcoQuality();
+    var covered = cover.classList.contains('show');
+    if(covered){
+      // 見えづらくしている間は画質を上げても意味がないため、表示サイズごと縮めて確実に低画質化する
+      setEcoShrink(true);
+    } else if(!currentIsRadio){
+      setEcoShrink(false);
     }
   });
 
