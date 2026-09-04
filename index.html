@@ -350,6 +350,21 @@
     background:rgba(184,145,46,0.22); border:1.5px solid rgba(243,230,200,0.5);
     color:#F3E6C8; font-size:20px;
   }
+  .radio-speed-row{ display:flex; gap:6px; margin-top:2px; }
+  .radio-speed-btn{
+    padding:6px 11px; border-radius:14px;
+    font-family:'DotGothic16', monospace; font-size:11px; letter-spacing:0.03em;
+    background:rgba(0,0,0,0.28); border:1px solid rgba(243,230,200,0.32);
+    color:rgba(243,230,200,0.7);
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  }
+  .radio-speed-btn:active{ transform:scale(0.94); }
+  .radio-speed-btn.active{
+    background: linear-gradient(180deg, rgba(255,215,150,0.95), rgba(255,180,90,0.9));
+    border-color:rgba(255,215,150,0.95);
+    color:#3C2A19; font-weight:700;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  }
 
   .cooldown-overlay{
     position:fixed; inset:0; z-index:900;
@@ -633,6 +648,13 @@
       <div class="radio-title" id="radioTitle">再生中の音声</div>
       <div class="radio-time" id="radioTime">00:00 / 00:00</div>
       <button class="radio-ctrl-btn" id="radioPlayPauseBtn">⏸</button>
+      <div class="radio-speed-row" id="radioSpeedRow">
+        <button class="radio-speed-btn" data-speed="0.75">0.75x</button>
+        <button class="radio-speed-btn active" data-speed="1">1.0x</button>
+        <button class="radio-speed-btn" data-speed="1.25">1.25x</button>
+        <button class="radio-speed-btn" data-speed="1.5">1.5x</button>
+        <button class="radio-speed-btn" data-speed="2">2.0x</button>
+      </div>
       <div class="note">画面を見えにくくしています(タップで解除)</div>
     </div>
   </div>
@@ -1403,6 +1425,8 @@
     document.getElementById('radioTitle').textContent = currentVideoTitle;
     document.getElementById('radioPlayPauseBtn').textContent = '⏸';
     startRadioUpdateLoop();
+    currentPlaybackRate = 1;
+    setRadioSpeedButtons(1);
 
     var cover = document.getElementById('screenCover');
     var toggleBtn = document.getElementById('radioToggleBtn');
@@ -1419,6 +1443,7 @@
 
   document.getElementById('screenCover').addEventListener('click', function(){
     this.classList.remove('show');
+    if(!currentIsRadio){ setEcoShrink(false); }
   });
   document.getElementById('radioToggleBtn').addEventListener('click', function(){
     var cover = document.getElementById('screenCover');
@@ -1430,6 +1455,25 @@
     } else if(!currentIsRadio){
       setEcoShrink(false);
     }
+  });
+
+  // ---- 再生速度調整(モザイク/見えにくくしている間に使う) ----
+  var currentPlaybackRate = 1;
+  function setRadioSpeedButtons(rate){
+    document.querySelectorAll('.radio-speed-btn').forEach(function(btn){
+      btn.classList.toggle('active', parseFloat(btn.getAttribute('data-speed')) === rate);
+    });
+  }
+  document.querySelectorAll('.radio-speed-btn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var rate = parseFloat(this.getAttribute('data-speed'));
+      currentPlaybackRate = rate;
+      if(ytPlayer && ytPlayer.setPlaybackRate){
+        try{ ytPlayer.setPlaybackRate(rate); }catch(err){}
+      }
+      setRadioSpeedButtons(rate);
+    });
   });
 
   // ---- ラジオ画面: タイトル・再生時間の表示更新 ----
@@ -1600,4 +1644,3 @@
 </script>
 </body>
 </html>
-
