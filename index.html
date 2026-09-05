@@ -265,16 +265,6 @@
   .searchbar .row{ gap:8px; }
   .searchbar input{ font-size:16px; padding:12px 14px; border-radius:12px; }
   .searchbar button{ font-size:15px; padding:12px 18px; border-radius:12px; }
-  .bath-btn{
-    flex:0 0 auto;
-    width:46px; height:46px; padding:0;
-    display:flex; align-items:center; justify-content:center;
-    border-radius:14px;
-    background:var(--surface-2);
-    color:var(--accent);
-    font-size:24px;
-    line-height:1;
-  }
 
   .overlay{
     position:fixed; inset:0; background:#000; z-index:1000;
@@ -342,15 +332,15 @@
     background: radial-gradient(circle at 50% 38%, rgba(92,64,41,0.88), rgba(20,14,8,0.95));
     backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
     z-index:999;
-    display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px;
-    cursor:pointer; padding:24px;
+    display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px;
+    cursor:pointer; padding:20px;
   }
   .screen-cover.show{ display:flex; }
   .screen-cover .note{ color:rgba(243,230,200,0.4); font-size:11px; text-align:center; padding:0 32px; margin-top:4px; }
 
-  .radio-dial-wrap{ position:relative; width:132px; height:132px; display:flex; align-items:center; justify-content:center; }
+  .radio-dial-wrap{ position:relative; width:104px; height:104px; display:flex; align-items:center; justify-content:center; }
   .radio-dial-wrap::before{
-    content:''; position:absolute; inset:-6px; border-radius:50%;
+    content:''; position:absolute; inset:-5px; border-radius:50%;
     background: conic-gradient(from 0deg, rgba(255,205,130,0.05), rgba(255,205,130,0.9), rgba(255,205,130,0.05) 40%, rgba(255,205,130,0.05));
     animation: dialRingSpin 5.5s linear infinite;
     opacity:0.85;
@@ -358,14 +348,14 @@
   .radio-dial-wrap.paused::before{ animation-play-state:paused; opacity:0.35; }
   @keyframes dialRingSpin{ to{ transform:rotate(360deg); } }
   .radio-dial{
-    position:relative; width:118px; height:118px; border-radius:50%;
+    position:relative; width:92px; height:92px; border-radius:50%;
     background: radial-gradient(circle at 35% 30%, #8a6038, #3C2A19 72%);
     border:3px solid rgba(20,14,8,0.6);
     box-shadow: 0 0 0 3px rgba(0,0,0,0.35), 0 12px 30px rgba(0,0,0,0.55), inset 0 2px 6px rgba(255,255,255,0.15);
     display:flex; align-items:center; justify-content:center;
   }
   .radio-dial::after{
-    content:''; position:absolute; inset:14px; border-radius:50%;
+    content:''; position:absolute; inset:11px; border-radius:50%;
     border:1px solid rgba(255,255,255,0.08);
   }
   .radio-dial-glow{
@@ -388,11 +378,11 @@
   }
   .radio-time{ font-family:'DotGothic16', monospace; color:rgba(243,230,200,0.75); font-size:13px; letter-spacing:0.08em; }
 
-  .radio-ctrl-wrap{ position:relative; width:96px; height:96px; display:flex; align-items:center; justify-content:center; margin:4px 0 2px; }
+  .radio-ctrl-wrap{ position:relative; width:130px; height:130px; display:flex; align-items:center; justify-content:center; margin:4px 0 2px; }
   .radio-ctrl-wrap::before{
     content:''; position:absolute; inset:0; border-radius:50%;
     background: radial-gradient(circle, rgba(255,190,110,0.55), transparent 70%);
-    filter: blur(6px);
+    filter: blur(8px);
     animation: ctrlHalo 2.2s ease-in-out infinite;
   }
   .radio-ctrl-wrap.paused::before{ animation-play-state:paused; opacity:0.4; }
@@ -401,19 +391,19 @@
     50%{ opacity:0.95; transform:scale(1.06); }
   }
   .radio-ctrl-btn{
-    position:relative; width:84px; height:84px; border-radius:50%;
+    position:relative; width:116px; height:116px; border-radius:50%;
     background: linear-gradient(155deg, #ffd591 0%, #d98a3d 55%, #a9622e 100%);
-    border:2px solid rgba(255,230,190,0.55);
-    color:#3C2A19; font-size:32px;
+    border:3px solid rgba(255,230,190,0.55);
+    color:#3C2A19; font-size:44px;
     display:flex; align-items:center; justify-content:center;
     box-shadow:
-      0 10px 24px rgba(0,0,0,0.45),
-      inset 0 2px 3px rgba(255,255,255,0.55),
-      inset 0 -6px 10px rgba(90,50,15,0.35);
+      0 12px 30px rgba(0,0,0,0.48),
+      inset 0 2px 4px rgba(255,255,255,0.55),
+      inset 0 -8px 14px rgba(90,50,15,0.35);
     transition: transform 0.15s ease;
   }
   .radio-ctrl-btn:active{ transform:scale(0.93); }
-  .radio-ctrl-btn .glyph{ transform:translateX(1px); line-height:1; }
+  .radio-ctrl-btn .glyph{ transform:translateX(2px); line-height:1; }
 
   .radio-speed-row{
     display:flex; gap:2px; padding:4px; margin-top:2px;
@@ -553,6 +543,17 @@
     box-shadow:0 2px 6px rgba(169,98,46,0.4);
     position:absolute; top:-6px; left:-6px; z-index:2;
   }
+  .gacha-choice-hide-btn{
+    position:absolute; top:-6px; right:-6px; z-index:3;
+    width:24px; height:24px; border-radius:50%;
+    background:var(--surface-2); border:1px solid var(--border);
+    color:var(--text-muted); font-size:11px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(58,42,26,0.18);
+  }
+  .gacha-choice-hide-btn:active{ transform:scale(0.9); }
+  .gacha-choice-card.replacing{ opacity:0.35; pointer-events:none; }
+  .gacha-choice-card{ cursor:pointer; }
   .gacha-choice-card img{
     width:104px; aspect-ratio:16/10; object-fit:cover; border-radius:11px; flex:0 0 auto;
     box-shadow:0 2px 8px rgba(0,0,0,0.15);
@@ -604,16 +605,6 @@
     <div class="row" style="margin-bottom:14px;">
       <input type="password" id="apiKeyInput" placeholder="APIキーを貼り付け">
       <button id="saveKeyBtn">保存</button>
-    </div>
-    <div class="label">♨️ ボタンで自動再生する検索キーワード</div>
-    <div class="row" style="margin-bottom:14px;">
-      <input type="text" id="bathQueryInput" placeholder="例: ラジオ">
-      <button id="saveBathBtn">保存</button>
-    </div>
-    <div class="label">💤 ボタンで自動再生する検索キーワード</div>
-    <div class="row" style="margin-bottom:14px;">
-      <input type="text" id="sleepQueryInput" placeholder="例: 睡眠 雑学">
-      <button id="saveSleepBtn">保存</button>
     </div>
     <div class="label">🎲 ガチャの候補(カンマ区切り)</div>
     <div class="row" style="margin-bottom:14px;">
@@ -671,8 +662,6 @@
     <div class="quick-tags" id="quickTags"></div>
     <div class="searchbar">
       <div class="row">
-        <button class="bath-btn" id="bathBtn" aria-label="お風呂用の動画を自動再生">♨</button>
-        <button class="bath-btn" id="sleepBtn" aria-label="睡眠用の動画を自動再生">💤</button>
         <input type="text" id="queryInput" placeholder="見たい動画・トピックを検索">
         <button class="primary" id="searchBtn">検索</button>
       </div>
@@ -755,7 +744,6 @@
   var KEY_STORAGE = 'clean-tube-api-key';
   var CHAN_STORAGE = 'clean-tube-channels';
   var COUNTER_STORAGE = 'clean-tube-daily-counter';
-  var BATH_QUERY_STORAGE = 'clean-tube-bath-query';
   var RESULT_COUNT = 8;
   var COOLDOWN_STEP = 10;      // 1本ごとに+10秒
   var MIN_DURATION_SECONDS = 600; // 10分未満は除外(通常検索のみ)
@@ -765,8 +753,8 @@
   var firebaseUrl = localStorage.getItem(FIREBASE_URL_STORAGE) || '';
   var SYNC_KEYS = [
     'clean-tube-api-key','clean-tube-channels','clean-tube-daily-counter',
-    'clean-tube-bath-query','clean-tube-sleep-query','clean-tube-gacha-queries',
-    'clean-tube-quick-tags','clean-tube-watched-ids','clean-tube-daily-goal',
+    'clean-tube-gacha-queries',
+    'clean-tube-quick-tags','clean-tube-watched-ids','clean-tube-hidden-ids','clean-tube-daily-goal',
     'clean-tube-stamps','clean-tube-stamp-checked-date','clean-tube-total-exp',
     'clean-tube-last-stop-ts'
   ];
@@ -822,10 +810,33 @@
       pushRemoteState();
     }
   }
-  function filterUnwatched(items){
+
+  // ---- hidden list (「今後表示しない」で消した動画は二度と出さない) ----
+  var HIDDEN_STORAGE = 'clean-tube-hidden-ids';
+  function loadHidden(){
+    try{ return JSON.parse(localStorage.getItem(HIDDEN_STORAGE) || '[]'); }
+    catch(e){ return []; }
+  }
+  function markHidden(id){
+    var h = loadHidden();
+    if(h.indexOf(id) === -1){
+      h.push(id);
+      if(h.length > 500){ h = h.slice(h.length - 500); }
+      localStorage.setItem(HIDDEN_STORAGE, JSON.stringify(h));
+      pushRemoteState();
+    }
+  }
+
+  // 視聴済み・非表示指定のどちらでもない動画だけに絞り込む(フォールバックなし)
+  function filterExcluded(items){
     var w = loadWatched();
-    var filtered = items.filter(function(item){ return w.indexOf(item.id) === -1; });
-    return filtered.length > 0 ? filtered : items; // 全部視聴済みなら元のリストを返す(手詰まり防止)
+    var h = loadHidden();
+    return items.filter(function(item){ return w.indexOf(item.id) === -1 && h.indexOf(item.id) === -1; });
+  }
+  // 検索用: 全部除外済みで0件になる場合だけ、手詰まり防止のため元のリストを返す
+  function filterUnwatched(items){
+    var filtered = filterExcluded(items);
+    return filtered.length > 0 ? filtered : items;
   }
 
   // ---- daily counter (検索から手動再生した回数のみをカウント) ----
@@ -1039,33 +1050,6 @@
     document.getElementById('settingsCard').classList.remove('open');
   });
 
-  // ---- bath query setting ----
-  var bathQuery = localStorage.getItem(BATH_QUERY_STORAGE) || 'ラジオ';
-  document.getElementById('bathQueryInput').value = bathQuery;
-  document.getElementById('saveBathBtn').addEventListener('click', function(){
-    var v = document.getElementById('bathQueryInput').value.trim();
-    if(v){
-      bathQuery = v;
-      localStorage.setItem(BATH_QUERY_STORAGE, v);
-      pushRemoteState();
-      document.getElementById('settingsCard').classList.remove('open');
-    }
-  });
-
-  // ---- sleep query setting ----
-  var SLEEP_QUERY_STORAGE = 'clean-tube-sleep-query';
-  var sleepQuery = localStorage.getItem(SLEEP_QUERY_STORAGE) || '睡眠 雑学';
-  document.getElementById('sleepQueryInput').value = sleepQuery;
-  document.getElementById('saveSleepBtn').addEventListener('click', function(){
-    var v = document.getElementById('sleepQueryInput').value.trim();
-    if(v){
-      sleepQuery = v;
-      localStorage.setItem(SLEEP_QUERY_STORAGE, v);
-      pushRemoteState();
-      document.getElementById('settingsCard').classList.remove('open');
-    }
-  });
-
   // ---- gacha query list ----
   var GACHA_QUERY_STORAGE = 'clean-tube-gacha-queries';
   var gachaQueries = (localStorage.getItem(GACHA_QUERY_STORAGE) || 'ゆる言語学ラジオ,本要約チャンネル')
@@ -1080,6 +1064,10 @@
       document.getElementById('settingsCard').classList.remove('open');
     }
   });
+
+  var gachaCurrentQuery = '';
+  var gachaReservePool = [];   // 3択に出さなかった予備の候補(非表示にした時の差し替え用)
+  var currentGachaPicks = [];  // 現在3択画面に表示している動画
 
   async function gachaPlay(){
     var errEl = document.getElementById('queryErr');
@@ -1101,24 +1089,26 @@
       items = items.filter(function(item){
         return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
       });
-      items = filterUnwatched(items);
+      items = filterExcluded(items); // 視聴済み・非表示指定の動画は候補から完全に除外する(復活させない)
       spinner.style.display = 'none';
       if(items.length === 0){
-        errEl.textContent = '「' + pickedQuery + '」で動画が見つかりませんでした';
+        errEl.textContent = '「' + pickedQuery + '」で(未視聴の)動画が見つかりませんでした';
         errEl.style.display = 'block';
         return;
       }
       items.sort(function(a, b){
         return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
       });
-      var topN = items.slice(0, Math.min(10, items.length));
-      // シャッフルして重複なしで最大3件抽出
+      var topN = items.slice(0, Math.min(15, items.length));
+      // シャッフルして重複なしで抽出
       var shuffled = topN.slice();
       for(var i = shuffled.length - 1; i > 0; i--){
         var j = Math.floor(Math.random() * (i + 1));
         var tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
       }
       var picks = shuffled.slice(0, Math.min(3, shuffled.length));
+      gachaCurrentQuery = pickedQuery;
+      gachaReservePool = shuffled.slice(picks.length); // 残りは「今後表示しない」で消した時の差し替え候補として温存
       showGachaChoices(picks);
     } catch(e){
       spinner.style.display = 'none';
@@ -1128,28 +1118,45 @@
   }
 
   // ---- gacha: 3択の選択画面 ----
+  function gachaCardHtml(item, idx){
+    var snippet = item.snippet;
+    var thumb = (snippet.thumbnails.medium || snippet.thumbnails.default).url;
+    return (
+      '<span class="gacha-choice-num">' + (idx + 1) + '</span>' +
+      '<button class="gacha-choice-hide-btn" data-idx="' + idx + '" aria-label="今後表示しない" title="今後表示しない">🚫</button>' +
+      '<img src="' + thumb + '" alt="">' +
+      '<div class="meta">' +
+        '<div class="title">' + escapeHtml(snippet.title) + '</div>' +
+        '<div class="channel">' + escapeHtml(snippet.channelTitle) + '</div>' +
+      '</div>'
+    );
+  }
+  function bindGachaCard(el, idx){
+    el.addEventListener('click', function(){
+      var item = currentGachaPicks[idx];
+      if(!item) return;
+      el.classList.add('reveal-shine');
+      setTimeout(function(){
+        hideGachaChoices();
+        playVideo(item.id, 'gacha', item.snippet.title);
+      }, 180);
+    });
+    var hideBtn = el.querySelector('.gacha-choice-hide-btn');
+    hideBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      hideGachaCandidate(idx);
+    });
+  }
   function showGachaChoices(items){
+    currentGachaPicks = items.slice();
     var container = document.getElementById('gachaChoiceCards');
     container.innerHTML = '';
     items.forEach(function(item, idx){
-      var snippet = item.snippet;
-      var thumb = (snippet.thumbnails.medium || snippet.thumbnails.default).url;
-      var el = document.createElement('button');
+      var el = document.createElement('div');
       el.className = 'gacha-choice-card';
-      el.innerHTML =
-        '<span class="gacha-choice-num">' + (idx + 1) + '</span>' +
-        '<img src="' + thumb + '" alt="">' +
-        '<div class="meta">' +
-          '<div class="title">' + escapeHtml(snippet.title) + '</div>' +
-          '<div class="channel">' + escapeHtml(snippet.channelTitle) + '</div>' +
-        '</div>';
-      el.addEventListener('click', function(){
-        el.classList.add('reveal-shine');
-        setTimeout(function(){
-          hideGachaChoices();
-          playVideo(item.id, 'gacha', snippet.title);
-        }, 180);
-      });
+      el.setAttribute('data-idx', idx);
+      el.innerHTML = gachaCardHtml(item, idx);
+      bindGachaCard(el, idx);
       container.appendChild(el);
     });
     document.getElementById('gachaChoiceOverlay').classList.add('open');
@@ -1157,6 +1164,62 @@
   function hideGachaChoices(){
     document.getElementById('gachaChoiceOverlay').classList.remove('open');
   }
+
+  // ---- gacha: 3択の中の1枠を「今後表示しない」で消して、新しい候補と差し替える ----
+  async function fetchGachaReplacement(){
+    // まずは残っている予備プールから、まだ除外・表示されていないものを探す
+    while(gachaReservePool.length > 0){
+      var cand = gachaReservePool.shift();
+      if(!isExcludedId(cand.id) && !currentGachaPicks.some(function(p){ return p.id === cand.id; })){
+        return cand;
+      }
+    }
+    // 予備プールが尽きたら、同じクエリで新たに取得しに行く
+    if(!gachaCurrentQuery) return null;
+    try{
+      var items = await fetchVideos(gachaCurrentQuery, 25);
+      items = items.filter(function(item){
+        return parseDuration(item.contentDetails.duration) >= MIN_DURATION_SECONDS;
+      });
+      items = filterExcluded(items).filter(function(item){
+        return !currentGachaPicks.some(function(p){ return p.id === item.id; });
+      });
+      if(items.length === 0) return null;
+      items.sort(function(a, b){
+        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
+      });
+      var topN = items.slice(0, Math.min(15, items.length));
+      // 取得分の残りは次回の差し替え用の予備プールに足しておく
+      gachaReservePool = gachaReservePool.concat(topN.slice(1));
+      return topN[0];
+    } catch(e){ return null; }
+  }
+  function isExcludedId(id){
+    return loadWatched().indexOf(id) !== -1 || loadHidden().indexOf(id) !== -1;
+  }
+  async function hideGachaCandidate(idx){
+    var item = currentGachaPicks[idx];
+    if(!item) return;
+    markHidden(item.id);
+    var card = document.querySelector('.gacha-choice-card[data-idx="' + idx + '"]');
+    if(card){ card.classList.add('replacing'); }
+
+    var replacement = await fetchGachaReplacement();
+    if(!replacement){
+      // 差し替え候補がなければ、そのまま枠を消す
+      currentGachaPicks[idx] = null;
+      if(card){ card.remove(); }
+      return;
+    }
+    currentGachaPicks[idx] = replacement;
+    if(card){
+      card.innerHTML = gachaCardHtml(replacement, idx);
+      card.classList.remove('replacing');
+      card.classList.add('reveal-shine');
+      bindGachaCard(card, idx);
+    }
+  }
+
   document.getElementById('gachaChoiceCancel').addEventListener('click', hideGachaChoices);
   document.getElementById('gachaChoiceReroll').addEventListener('click', function(){
     hideGachaChoices();
@@ -1310,43 +1373,6 @@
     }
   }
 
-  // ---- ♨️ / 💤: auto-play top unwatched result for a preset query, no cooldown, no count ----
-  async function specialAutoPlay(query, source){
-    var errEl = document.getElementById('queryErr');
-    errEl.style.display = 'none';
-
-    if(!apiKey){
-      errEl.textContent = '先に⚙からAPIキーを保存してください';
-      errEl.style.display = 'block';
-      document.getElementById('settingsCard').classList.add('open');
-      return;
-    }
-
-    var spinner = document.getElementById('spinner');
-    spinner.style.display = 'block';
-    try{
-      var items = await fetchVideos(query, 15);
-      spinner.style.display = 'none';
-      if(items.length === 0){
-        errEl.textContent = '動画が見つかりませんでした';
-        errEl.style.display = 'block';
-        return;
-      }
-      items.sort(function(a, b){
-        return (parseInt(b.statistics.viewCount || 0, 10)) - (parseInt(a.statistics.viewCount || 0, 10));
-      });
-      items = filterUnwatched(items);
-      playVideo(items[0].id, source, items[0].snippet.title);
-    } catch(e){
-      spinner.style.display = 'none';
-      errEl.textContent = e.message || '通信エラーが発生しました';
-      errEl.style.display = 'block';
-    }
-  }
-
-  document.getElementById('bathBtn').addEventListener('click', function(){ specialAutoPlay(bathQuery, 'bath'); });
-  document.getElementById('sleepBtn').addEventListener('click', function(){ specialAutoPlay(sleepQuery, 'sleep'); });
-
   var ytPlayer = null;
   var apiReady = false;
   var pendingPlay = null;
@@ -1384,7 +1410,7 @@
   // 注: YouTube側は setPlaybackQuality による強制を現在ほぼ無視するため、
   // 「前回視聴時の画質を引き継ぐだけ」になりがち。そこで実際に効く方法として、
   // プレイヤーの表示サイズそのものを小さくする(YouTubeの自動画質選択は表示サイズも見て決めている)。
-  // 見えづらくしている間・お風呂/睡眠モード中は画面を覗いても分からないため、これで確実に低画質化する。
+  // 見えづらくしている間は画面を覗いても分からないため、これで確実に低画質化する。
   function enforceEcoQuality(){
     if(ytPlayer && ytPlayer.setPlaybackQuality){
       try{ ytPlayer.setPlaybackQuality('tiny'); } catch(e){}
@@ -1461,12 +1487,10 @@
 
   var currentSource = 'search';
   var currentVideoTitle = '';
-  var currentIsRadio = false;
 
   function playVideo(id, source, title){
     currentSource = source;
     currentVideoTitle = title || '再生中の音声';
-    var isRadio = (source === 'bath' || source === 'sleep');
     var countsToward = (source === 'search');
 
     if(countsToward){
@@ -1488,37 +1512,26 @@
     currentPlaybackRate = 1;
     setRadioSpeedButtons(1);
 
+    // 動画再生開始時は常にモザイク(見えにくく)モードから始める。ボタン/タップでいつでも解除できる。
     var cover = document.getElementById('screenCover');
     var toggleBtn = document.getElementById('radioToggleBtn');
     toggleBtn.style.display = 'flex';
-    currentIsRadio = isRadio;
-    if(isRadio){
-      cover.classList.add('show');
-      toggleBtn.classList.add('active');
-      setEcoShrink(true);
-    } else {
-      cover.classList.remove('show');
-      toggleBtn.classList.remove('active');
-      setEcoShrink(false);
-    }
+    cover.classList.add('show');
+    toggleBtn.classList.add('active');
+    setEcoShrink(true);
   }
 
   document.getElementById('screenCover').addEventListener('click', function(){
     this.classList.remove('show');
     document.getElementById('radioToggleBtn').classList.remove('active');
-    if(!currentIsRadio){ setEcoShrink(false); }
+    setEcoShrink(false);
   });
   document.getElementById('radioToggleBtn').addEventListener('click', function(){
     var cover = document.getElementById('screenCover');
     cover.classList.toggle('show');
     var covered = cover.classList.contains('show');
     this.classList.toggle('active', covered);
-    if(covered){
-      // 見えづらくしている間は画質を上げても意味がないため、表示サイズごと縮めて確実に低画質化する
-      setEcoShrink(true);
-    } else if(!currentIsRadio){
-      setEcoShrink(false);
-    }
+    setEcoShrink(covered);
   });
 
   // ---- 再生速度調整(モザイク/見えにくくしている間に使う) ----
@@ -1637,7 +1650,6 @@
       } else if(currentSource === 'gacha'){
         startCooldown(15, 'おまかせ動画を閉じました。少し休憩してから次へ');
       }
-      // bath / sleep: クールダウンなし(有益・必要な視聴として扱う)
     }, 300);
   });
 
